@@ -3,14 +3,12 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
-use App\Mail\LoaDiscontinuedMail;
 use App\Models\LoaAttachment;
 use App\Models\LoaRequest;
 use App\Services\LoaPdfGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -161,19 +159,16 @@ class LoaRequestController extends Controller
         ]);
 
         $user = $request->user();
-        $loaRequest->markDiscontinued($user, $request->input('reason'));
+        $emailed = $loaRequest->markDiscontinued($user, $request->input('reason'));
 
-        // Notify student
-        try {
-            $loaRequest->load(['department', 'program', 'discontinuedByActor']);
-            Mail::to($loaRequest->email)->send(new LoaDiscontinuedMail($loaRequest));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $message = "LOA {$loaRequest->control_number} marked as discontinued.";
+        $message .= $emailed
+            ? " The student was emailed at {$loaRequest->email}."
+            : ' The student email could not be sent. They can still check status with their control number and student ID.';
 
         return redirect()
             ->route('staff.loa.show', $loaRequest)
-            ->with('status', "LOA {$loaRequest->control_number} marked as discontinued.");
+            ->with('status', $message);
     }
 
     public function markReturned(Request $request, LoaRequest $loaRequest): RedirectResponse

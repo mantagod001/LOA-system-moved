@@ -53,7 +53,9 @@
                                     <td style="padding:0 0 8px;font-size:13px;color:#374151;">
                                         <strong>Recorded by:</strong>
                                         {{ $loa->discontinuedByActor->name }}
-                                        ({{ $loa->discontinuedByActor->role->label() }})
+                                        @if ($loa->discontinuedByActor->role)
+                                            ({{ $loa->discontinuedByActor->role->label() }})
+                                        @endif
                                         @if ($loa->discontinued_at)
                                             &mdash; {{ $loa->discontinued_at->format('M j, Y \a\t g:i A') }}
                                         @endif
@@ -76,6 +78,18 @@
                     {{-- What to do --}}
                     <tr>
                         <td style="padding:24px 32px 0;">
+                            <p style="margin:0 0 16px;font-size:13px;line-height:1.7;color:#4a0e18;">
+                                You can confirm this on Check LOA Status using your control number and student ID:
+                            </p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 16px;">
+                                <tr>
+                                    <td align="center" bgcolor="#4a0e18" style="border-radius:10px;">
+                                        <a href="{{ $statusUrl }}" target="_blank" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:700;color:#fdf7f4;text-decoration:none;">
+                                            Check LOA status
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
                             <p style="margin:0;font-size:13px;line-height:1.7;color:#4a0e18;">
                                 If you have questions or believe this was done in error, please contact the SASO Office or your Department Head.
                             </p>

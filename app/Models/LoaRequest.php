@@ -7,6 +7,7 @@ use App\Enums\ApprovalStageStatus;
 use App\Enums\UserRole;
 use App\Support\PersonName;
 use App\Mail\LoaApprovedMail;
+use App\Mail\LoaDiscontinuedMail;
 use App\Mail\LoaRejectedMail;
 use App\Models\LoaRejectionHistory;
 use Illuminate\Database\Eloquent\Builder;
@@ -609,7 +610,7 @@ class LoaRequest extends Model
         };
     }
 
-    public function markDiscontinued(User $user, ?string $reason = null): void
+    public function markDiscontinued(User $user, ?string $reason = null): bool
     {
         $now = now();
 
@@ -619,6 +620,25 @@ class LoaRequest extends Model
             'discontinued_by'       => $user->id,
             'discontinuation_reason'=> $reason,
         ]);
+
+        $this->refresh();
+        $this->load(['department', 'program', 'discontinuedByActor']);
+
+        if (! filled($this->email)) {
+            report(new \RuntimeException("LOA {$this->control_number} was discontinued but has no student email."));
+
+            return false;
+        }
+
+        try {
+            Mail::to($this->email)->send(new LoaDiscontinuedMail($this, url('/loa/status')));
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
     }
 
     public function canBeMarkedReturnedBy(User $user): bool

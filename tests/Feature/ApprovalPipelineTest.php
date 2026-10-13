@@ -580,7 +580,9 @@ class ApprovalPipelineTest extends TestCase
         $this->assertNotNull($fresh->discontinued_at);
 
         Mail::assertSent(LoaDiscontinuedMail::class, function ($mail) use ($loa) {
-            return $mail->loa->id === $loa->id && $mail->hasTo($loa->email);
+            return $mail->loa->id === $loa->id
+                && $mail->hasTo($loa->email)
+                && $mail->statusUrl === url('/loa/status');
         });
     }
 

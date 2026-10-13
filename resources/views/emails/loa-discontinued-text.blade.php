@@ -9,7 +9,7 @@ Your Leave of Absence application has been marked as discontinued / withdrawn.
 @if ($loa->discontinuedByActor)
 RECORDED BY
 -----------
-{{ $loa->discontinuedByActor->name }} ({{ $loa->discontinuedByActor->role->label() }})
+{{ $loa->discontinuedByActor->name }}@if ($loa->discontinuedByActor->role) ({{ $loa->discontinuedByActor->role->label() }})@endif
 @if ($loa->discontinued_at){{ $loa->discontinued_at->format('M j, Y \a\t g:i A') }}
 @endif
 @endif
@@ -20,6 +20,9 @@ REASON
 {{ $loa->discontinuation_reason }}
 
 @endif
+Check your application here (control number + student ID):
+{{ $statusUrl }}
+
 If you have questions or believe this was done in error, please contact
 the SASO Office or your Department Head.
 

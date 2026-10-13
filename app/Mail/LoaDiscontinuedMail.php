@@ -15,6 +15,7 @@ class LoaDiscontinuedMail extends Mailable
 
     public function __construct(
         public LoaRequest $loa,
+        public string $statusUrl,
     ) {}
 
     public function envelope(): Envelope
