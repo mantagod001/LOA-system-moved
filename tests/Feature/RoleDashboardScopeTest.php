@@ -158,18 +158,23 @@ class RoleDashboardScopeTest extends TestCase
     /**
      * AC-1: Administrator dashboard uses staff shell and shows admin role label.
      */
-    public function test_admin_dashboard_uses_staff_shell(): void
+    public function test_admin_is_redirected_from_dashboard_and_does_not_see_office_nav(): void
     {
         $user = User::factory()->create(['role' => UserRole::Administrator]);
 
         $this->actingAs($user)
             ->get(route('staff.dashboard'))
+            ->assertRedirect(route('staff.profile'));
+
+        $this->actingAs($user)
+            ->get(route('staff.profile'))
             ->assertOk()
-            ->assertSeeText('Dashboard')
-            ->assertSeeText('Approval Pipeline')
-            ->assertSeeText('Reports & Analytics')
             ->assertSeeText('User Profile')
+            ->assertSeeText('User Management')
             ->assertSeeText('Logout')
+            ->assertDontSeeText('Approval Pipeline')
+            ->assertDontSeeText('Reports & Analytics')
+            ->assertDontSeeText('Your Activity')
             ->assertDontSeeText('Request LOA')
             ->assertSeeText('System Administrator');
     }

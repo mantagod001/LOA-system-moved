@@ -12,6 +12,7 @@
         \App\Enums\UserRole::DepartmentHead => 'bg-blue-100 text-blue-800 border-blue-300',
         \App\Enums\UserRole::SasoOfficer    => 'bg-amber-100 text-amber-800 border-amber-300',
         \App\Enums\UserRole::CampusDirector => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+        \App\Enums\UserRole::President      => 'bg-indigo-100 text-indigo-800 border-indigo-300',
         \App\Enums\UserRole::Registrar      => 'bg-teal-100 text-teal-800 border-teal-300',
         \App\Enums\UserRole::Guidance       => 'bg-sky-100 text-sky-800 border-sky-300',
         default                             => 'bg-gray-100 text-gray-700 border-gray-300',
@@ -89,22 +90,32 @@
                     @csrf
                     @method('PATCH')
 
-                    {{-- Name + Role side by side on larger screens --}}
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div>
-                            <label for="name" class="block text-xs font-medium text-maroon-900 mb-1">Full name</label>
-                            <input id="name" name="name" type="text"
-                                   value="{{ old('name', $invitee->name) }}" required
-                                   class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('name') border-red-400 bg-red-50 @enderror">
-                            @error('name')
-                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                            @enderror
+                            <label for="first_name" class="block text-xs font-medium text-maroon-900 mb-1">First name</label>
+                            <input id="first_name" name="first_name" type="text" required
+                                   value="{{ old('first_name', $invitee->first_name) }}"
+                                   class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('first_name') border-red-400 bg-red-50 @enderror">
+                            @error('first_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label for="email" class="block text-xs font-medium text-maroon-900 mb-1">Email address</label>
-                            <input type="text" value="{{ $invitee->email }}" disabled
-                                   class="w-full rounded-xl border border-maroon-900/10 bg-maroon-50 px-3 py-2.5 text-sm text-maroon-900/50 cursor-not-allowed">
+                            <label for="middle_name" class="block text-xs font-medium text-maroon-900 mb-1">Middle name</label>
+                            <input id="middle_name" name="middle_name" type="text"
+                                   value="{{ old('middle_name', $invitee->middle_name) }}"
+                                   class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700">
                         </div>
+                        <div>
+                            <label for="last_name" class="block text-xs font-medium text-maroon-900 mb-1">Last name</label>
+                            <input id="last_name" name="last_name" type="text" required
+                                   value="{{ old('last_name', $invitee->last_name) }}"
+                                   class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('last_name') border-red-400 bg-red-50 @enderror">
+                            @error('last_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-maroon-900 mb-1">Email address</label>
+                        <input type="text" value="{{ $invitee->email }}" disabled
+                               class="w-full rounded-xl border border-maroon-900/10 bg-maroon-50 px-3 py-2.5 text-sm text-maroon-900/50 cursor-not-allowed">
                     </div>
 
                     {{-- Role + Department side by side --}}

@@ -12,9 +12,13 @@ use Illuminate\View\View;
 
 class ReportsController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request): View|\Illuminate\Http\RedirectResponse
     {
         $user = auth()->user();
+
+        if ($user->role->is(\App\Enums\UserRole::Administrator)) {
+            return redirect()->route('staff.profile');
+        }
 
         // ── Validate filters ──────────────────────────────────────────────────
         $filterDept   = $request->integer('department_id') ?: null;

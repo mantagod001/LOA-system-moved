@@ -1,3 +1,4 @@
+@php $isExtension = $isExtension ?? false; @endphp
 @extends('layouts.app')
 
 @section('title', 'Enter verification code')
@@ -6,7 +7,7 @@
 <x-page-shell eyebrow="Step 2 of 2 · Verify email" title="Enter your code">
     <x-slot:lead>
         We sent a 6-digit code to <strong>{{ $email }}</strong>.
-        Enter it below to verify your email. Once verified, we'll send your LOA form link to that address.
+        Enter it below to verify your email. Once verified, we'll send your {{ $isExtension ? 'leave extension' : 'LOA' }} form link to that address.
         The code expires in <strong>10 minutes</strong>.
     </x-slot:lead>
 
@@ -41,7 +42,7 @@
             <p>Didn't receive the code? Check your spam folder. The email comes from <strong>EVSU OCC LOA</strong>.</p>
             <p>
                 Wrong email?
-                <a href="{{ route('student.identity') }}" class="font-semibold text-maroon-700 underline underline-offset-2 hover:text-maroon-600">
+                <a href="{{ route($isExtension ? 'student.extend' : 'student.identity') }}" class="font-semibold text-maroon-700 underline underline-offset-2 hover:text-maroon-600">
                     Start over
                 </a>
             </p>

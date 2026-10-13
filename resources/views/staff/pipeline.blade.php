@@ -8,7 +8,8 @@
         <p class="text-xs font-semibold uppercase tracking-wider text-maroon-600">Sequentially Enforced Order</p>
         <h2 class="mt-1 text-lg font-semibold text-maroon-950">Sequential Approval Pipeline &amp; Authority Clearances</h2>
         <p class="mt-2 text-sm text-maroon-900/70">
-            Stage actions are locked in order: <span class="font-semibold">Department Head → SASO Officer → Campus Director</span>.
+            Regular leave: <span class="font-semibold">Department Head → SASO Officer → Campus Director</span>.
+            Extensions: <span class="font-semibold">President</span> first, then the same three campus offices.
             Each stage must be approved before the next office can act. A rejection at any stage terminates the pipeline.
         </p>
     </div>
@@ -58,6 +59,7 @@
                 <option value="approved"     {{ $filterStatus === 'approved'     ? 'selected' : '' }}>Approved</option>
                 <option value="rejected"     {{ $filterStatus === 'rejected'     ? 'selected' : '' }}>Rejected</option>
                 <option value="discontinued" {{ $filterStatus === 'discontinued' ? 'selected' : '' }}>Discontinued</option>
+                <option value="overdue"      {{ $filterStatus === 'overdue'      ? 'selected' : '' }}>Overdue return</option>
                 <option value="draft"        {{ $filterStatus === 'draft'        ? 'selected' : '' }}>Draft</option>
             </select>
         </div>
@@ -91,7 +93,7 @@
                     @php
                         $statusLabels = [
                             'submitted' => 'Under Review', 'approved' => 'Approved',
-                            'rejected' => 'Rejected', 'discontinued' => 'Discontinued', 'draft' => 'Draft',
+                            'rejected' => 'Rejected', 'discontinued' => 'Discontinued', 'overdue' => 'Overdue return', 'draft' => 'Draft',
                         ];
                     @endphp
                     <span class="rounded-full bg-maroon-100 px-3 py-1 text-xs font-semibold text-maroon-800">
@@ -119,6 +121,7 @@
                         <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">App ID</th>
                         <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">Student ID</th>
                         <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">Student Name</th>
+                        <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">President Status</th>
                         <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">Dept Head Status</th>
                         <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">SASO Status</th>
                         <th scope="col" class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-maroon-900/70 sm:px-4">Campus Director Status</th>
@@ -152,6 +155,26 @@
                                         {{ optional($loa->program)->code ?? '—' }} · {{ optional($loa->department)->name ?? '—' }}
                                     </div>
                                 @endif
+                                @if ($loa->isOverdue())
+                                    <div class="mt-0.5">
+                                        <span class="rounded-full border border-red-500 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-800">
+                                            Overdue return
+                                        </span>
+                                    </div>
+                                @elseif ($loa->returned_at)
+                                    <div class="mt-0.5">
+                                        <span class="rounded-full border border-emerald-400 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                            Returned
+                                        </span>
+                                    </div>
+                                @endif
+                                @if ($loa->isExtension())
+                                    <div class="mt-0.5">
+                                        <span class="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-800">
+                                            Extension
+                                        </span>
+                                    </div>
+                                @endif
                                 @if ($loa->resubmit_count > 0)
                                     <div class="mt-0.5">
                                         <span class="rounded-full border border-amber-400 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
@@ -160,6 +183,7 @@
                                     </div>
                                 @endif
                             </td>
+                            <td class="whitespace-nowrap px-3 py-3 text-sm sm:px-4">{!! $statusBadge($loa->isExtension() ? $loa->president_status : null) !!}</td>
                             <td class="whitespace-nowrap px-3 py-3 text-sm sm:px-4">{!! $statusBadge($loa->dept_head_status) !!}</td>
                             <td class="whitespace-nowrap px-3 py-3 text-sm sm:px-4">{!! $statusBadge($loa->saso_status) !!}</td>
                             <td class="whitespace-nowrap px-3 py-3 text-sm sm:px-4">{!! $statusBadge($loa->campus_director_status) !!}</td>

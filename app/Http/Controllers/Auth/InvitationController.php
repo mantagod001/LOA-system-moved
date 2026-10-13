@@ -34,13 +34,17 @@ class InvitationController extends Controller
         }
 
         $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'first_name'  => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'last_name'   => ['required', 'string', 'max:100'],
+            'password'    => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $user->forceFill([
-            'name'                    => $request->input('name'),
-            'password'                => bcrypt($request->input('password')),
+            'first_name'              => $request->input('first_name'),
+            'middle_name'             => $request->input('middle_name'),
+            'last_name'               => $request->input('last_name'),
+            'password'                => $request->input('password'),
             'invitation_token'        => null,
             'invitation_accepted_at'  => now(),
             'email_verified_at'       => now(),
@@ -49,7 +53,7 @@ class InvitationController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('staff.dashboard')
+        return redirect()->route($user->role->is(\App\Enums\UserRole::Administrator) ? 'staff.profile' : 'staff.dashboard')
             ->with('status', 'Welcome to LeaveFlow! Your account is now active.');
     }
 

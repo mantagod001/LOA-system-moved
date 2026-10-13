@@ -5,13 +5,12 @@ Control Number: {{ $loa->control_number }}
 Dear {{ $loa->full_name }},
 
 Your Leave of Absence request has been APPROVED by all required offices.
-All three approval stages have been completed:
+Required approval stages have been completed:
 
-  [OK] Department Head{{ $loa->deptHeadActor ? ' — ' . $loa->deptHeadActor->name : '' }}{{ $loa->dept_head_at ? ' (' . $loa->dept_head_at->format('M j, Y') . ')' : '' }}
+@foreach ($loa->timelineStages() as $stage)
+  [OK] {{ $stage['label'] }}{{ $stage['actor'] ? ' — ' . $stage['actor']->name : '' }}{{ $stage['at'] ? ' (' . $stage['at']->format('M j, Y') . ')' : '' }}
 
-  [OK] SASO Officer{{ $loa->sasoActor ? ' — ' . $loa->sasoActor->name : '' }}{{ $loa->saso_at ? ' (' . $loa->saso_at->format('M j, Y') . ')' : '' }}
-
-  [OK] Campus Director{{ $loa->campusDirectorActor ? ' — ' . $loa->campusDirectorActor->name : '' }}{{ $loa->campus_director_at ? ' (' . $loa->campus_director_at->format('M j, Y') . ')' : '' }}
+@endforeach
 
 LEAVE DETAILS
 -------------

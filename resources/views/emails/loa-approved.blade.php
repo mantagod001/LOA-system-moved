@@ -61,11 +61,8 @@
                     <tr>
                         <td style="padding:0 32px;">
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0fdf4;border-radius:10px;padding:16px 20px;">
-                                @foreach ([
-                                    ['Department Head', $loa->deptHeadActor, $loa->dept_head_at],
-                                    ['SASO Officer',    $loa->sasoActor,     $loa->saso_at],
-                                    ['Campus Director', $loa->campusDirectorActor, $loa->campus_director_at],
-                                ] as [$label, $actor, $at])
+                                @foreach ($loa->timelineStages() as $stage)
+                                @php $label = $stage['label']; $actor = $stage['actor']; $at = $stage['at']; @endphp
                                 <tr>
                                     <td style="padding:4px 0;font-size:13px;color:#15803d;">
                                         &#10003; <strong>{{ $label }}</strong>

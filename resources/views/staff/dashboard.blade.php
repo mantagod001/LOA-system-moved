@@ -4,11 +4,16 @@
 @section('title', 'Dashboard Overview')
 
 @section('content')
-    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
         <div class="rounded-2xl border border-maroon-900/10 bg-white p-6 shadow-sm">
             <p class="text-xs font-semibold uppercase tracking-wider text-maroon-900/60">Total Applications</p>
             <p class="mt-2 text-4xl font-bold tracking-tight text-maroon-950">{{ $stats['total'] }}</p>
             <p class="mt-1 text-xs text-maroon-900/50">In your current scope</p>
+        </div>
+        <div class="rounded-2xl border border-maroon-900/10 bg-white p-6 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wider text-maroon-900/60">Overdue returns</p>
+            <p class="mt-2 text-4xl font-bold tracking-tight {{ $stats['overdue'] > 0 ? 'text-red-700' : 'text-maroon-950' }}">{{ $stats['overdue'] }}</p>
+            <p class="mt-1 text-xs text-maroon-900/50">Approved leave end date has passed. Not an enrollment check.</p>
         </div>
         <div class="rounded-2xl border border-maroon-900/10 bg-white p-6 shadow-sm">
             <p class="text-xs font-semibold uppercase tracking-wider text-maroon-900/60">Active Role</p>
@@ -39,6 +44,7 @@
                 <option value="approved"     {{ $filterStatus === 'approved'     ? 'selected' : '' }}>Approved</option>
                 <option value="rejected"     {{ $filterStatus === 'rejected'     ? 'selected' : '' }}>Rejected</option>
                 <option value="discontinued" {{ $filterStatus === 'discontinued' ? 'selected' : '' }}>Discontinued</option>
+                <option value="overdue"      {{ $filterStatus === 'overdue'      ? 'selected' : '' }}>Overdue return</option>
                 <option value="draft"        {{ $filterStatus === 'draft'        ? 'selected' : '' }}>Draft</option>
             </select>
         </div>
@@ -63,12 +69,35 @@
                     <span class="rounded-full bg-maroon-100 px-3 py-1 text-xs font-semibold text-maroon-800">"{{ $filterSearch }}"</span>
                 @endif
                 @if ($filterStatus)
-                    @php $statusLabels = ['submitted'=>'Under Review','approved'=>'Approved','rejected'=>'Rejected','discontinued'=>'Discontinued']; @endphp
+                    @php $statusLabels = ['submitted'=>'Under Review','approved'=>'Approved','rejected'=>'Rejected','discontinued'=>'Discontinued','overdue'=>'Overdue return']; @endphp
                     <span class="rounded-full bg-maroon-100 px-3 py-1 text-xs font-semibold text-maroon-800">{{ $statusLabels[$filterStatus] ?? ucfirst($filterStatus) }}</span>
                 @endif
             </div>
         @endif
     </form>
+
+    @if ($overdueLoas->isNotEmpty())
+        <div class="mb-6 rounded-2xl border border-red-200 bg-red-50/70 p-5 shadow-sm">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-red-700">Overdue returns</p>
+                    <p class="mt-0.5 text-sm text-red-800/80">Expected return date has passed and staff have not marked the student as returned.</p>
+                </div>
+                <a href="{{ route('staff.dashboard', ['status' => 'overdue']) }}" class="text-xs font-semibold text-red-800 underline underline-offset-2">View all</a>
+            </div>
+            <ul class="divide-y divide-red-100">
+                @foreach ($overdueLoas as $overdue)
+                    <li class="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                        <div>
+                            <p class="font-mono text-sm font-bold text-maroon-950">{{ $overdue->control_number }}</p>
+                            <p class="text-sm text-maroon-900">{{ $overdue->full_name }} · due {{ $overdue->return_date?->format('M j, Y') }}</p>
+                        </div>
+                        <a href="{{ route('staff.loa.show', $overdue) }}" class="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50">View</a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="mb-3 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-maroon-950">LOA Submissions Overview</h2>
@@ -121,12 +150,20 @@
                                 @if ($loa->program || $loa->department)
                                     <div class="text-xs text-maroon-900/55">{{ optional($loa->program)->code ?? '—' }} · {{ optional($loa->department)->name ?? '—' }}</div>
                                 @endif
+                                @if ($loa->isExtension())
+                                    <div class="mt-0.5"><span class="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-800">Extension</span></div>
+                                @endif
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-maroon-900/85 sm:px-6">{{ optional($loa->start_date)->toFormattedDateString() ?? '—' }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm text-maroon-900/85 sm:px-6">{{ optional($loa->return_date)->toFormattedDateString() ?? '—' }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-sm sm:px-6">
                                 <div class="flex flex-col gap-1">
                                     <span class="{{ $loa->statusBadgeClasses() }}">{{ $loa->statusLabel() }}</span>
+                                    @if ($loa->isOverdue())
+                                        <span class="border border-red-600 text-white bg-red-600 rounded-full px-3 py-1 text-xs font-medium">Overdue return</span>
+                                    @elseif ($loa->returned_at)
+                                        <span class="border border-emerald-600 text-emerald-800 bg-emerald-50 rounded-full px-3 py-1 text-xs font-medium">Returned</span>
+                                    @endif
                                     @if ($loa->status === 'submitted')
                                         <span class="{{ $stageClasses }}">{{ $stageLabel }}</span>
                                     @endif

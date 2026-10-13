@@ -38,7 +38,9 @@ class UserController extends Controller
         $role = UserRole::tryFrom((string) $request->input('role'));
 
         $validated = $request->validate([
-            'name'          => ['required', 'string', 'max:255'],
+            'first_name'    => ['required', 'string', 'max:100'],
+            'middle_name'   => ['nullable', 'string', 'max:100'],
+            'last_name'     => ['required', 'string', 'max:100'],
             'email'         => ['required', 'email', 'max:255', 'unique:users,email'],
             'role'          => ['required', Rule::in(array_map(fn (UserRole $r) => $r->value, UserRole::cases()))],
             'department_id' => [
@@ -49,7 +51,9 @@ class UserController extends Controller
         ]);
 
         $user = User::create([
-            'name'          => $validated['name'],
+            'first_name'    => $validated['first_name'],
+            'middle_name'   => $validated['middle_name'] ?? null,
+            'last_name'     => $validated['last_name'],
             'email'         => $validated['email'],
             'password'      => bcrypt(\Illuminate\Support\Str::random(32)),
             'role'          => $validated['role'],
@@ -89,7 +93,9 @@ class UserController extends Controller
         $role = UserRole::tryFrom((string) $request->input('role'));
 
         $validated = $request->validate([
-            'name'          => ['required', 'string', 'max:255'],
+            'first_name'    => ['required', 'string', 'max:100'],
+            'middle_name'   => ['nullable', 'string', 'max:100'],
+            'last_name'     => ['required', 'string', 'max:100'],
             'role'          => ['required', Rule::in(array_map(fn (UserRole $r) => $r->value, UserRole::cases()))],
             'department_id' => [
                 Rule::requiredIf($role?->needsDepartment() ?? false),
@@ -99,7 +105,9 @@ class UserController extends Controller
         ]);
 
         $user->update([
-            'name'          => $validated['name'],
+            'first_name'    => $validated['first_name'],
+            'middle_name'   => $validated['middle_name'] ?? null,
+            'last_name'     => $validated['last_name'],
             'role'          => $validated['role'],
             'department_id' => $role?->needsDepartment() ? $validated['department_id'] : null,
         ]);

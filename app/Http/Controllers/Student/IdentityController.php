@@ -18,14 +18,19 @@ class IdentityController extends Controller
 
     public function create(): View
     {
-        return view('student.identity');
+        return view('student.identity', [
+            'isExtension' => request()->routeIs('student.extend'),
+        ]);
     }
 
     // ── Step 2: validate email, send OTP ─────────────────────────────────────
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $isExtension = $request->routeIs('student.extend.store');
+
+        $rules = [
+            'student_id' => ['required', 'string', 'regex:/^\d{4}-\d{4,6}$/'],
             'email' => [
                 'required',
                 'email',
@@ -36,22 +41,53 @@ class IdentityController extends Controller
                     }
                 },
             ],
-        ], [
+        ];
+
+        if (! $isExtension) {
+            $rules['first_name'] = ['required', 'string', 'max:100'];
+            $rules['middle_name'] = ['nullable', 'string', 'max:100'];
+            $rules['last_name'] = ['required', 'string', 'max:100'];
+        }
+
+        $validated = $request->validate($rules, [
+            'student_id.regex' => 'Student ID must follow the format YYYY-NNNNN, e.g. 2021-12345.',
             'email.required' => 'Please enter your EVSU email address.',
             'email.email'    => 'Enter a valid email address.',
         ]);
 
-        $email = strtolower($request->input('email'));
+        $email = strtolower($validated['email']);
+        $parent = null;
 
-        // Check for existing active request on this email
-        if ($this->hasActiveRequestByEmail($email)) {
-            return back()
-                ->withInput()
-                ->withErrors(['email' => 'This EVSU email already has an active LOA request. Only one request is allowed at a time.']);
+        if ($isExtension) {
+            $parent = LoaRequest::approvedMatchingIdAndEmail($validated['student_id'], $email);
+            $block = $this->extensionBlockReason($validated['student_id'], $email, $parent);
+            if ($block) {
+                return back()->withInput()->withErrors([
+                    'email' => $block,
+                    'student_id' => $block,
+                ]);
+            }
+        } else {
+            $message = $this->newLeaveBlockReason($validated['student_id'], $email);
+            if ($message) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'email' => $message,
+                        'student_id' => $message,
+                    ]);
+            }
         }
 
-        // Issue a pending token + 6-digit OTP
-        [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, $request->ip());
+        [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, [
+            'student_id'  => $parent?->student_id ?? $validated['student_id'],
+            'first_name'  => $parent?->first_name ?: ($validated['first_name'] ?? ''),
+            'middle_name' => $parent?->middle_name ?: ($validated['middle_name'] ?? null),
+            'last_name'   => $parent?->last_name ?: ($validated['last_name'] ?? ''),
+        ], $request->ip(), [
+            'purpose' => $isExtension ? 'extension' : 'leave',
+            'parent_loa_id' => $parent?->id,
+        ]);
 
         try {
             Mail::to($email)->send(new LoaOtpMail($plainOtp, $email));
@@ -77,21 +113,21 @@ class IdentityController extends Controller
         $accessToken = $this->resolveToken($token);
 
         if (! $accessToken) {
-            return redirect()
-                ->route('student.identity')
-                ->withErrors(['email' => 'This verification link is invalid or has expired. Please start again.']);
+            return $this->expiredIdentityRedirect($token);
         }
 
         // Already verified — go to check-email (form link was already sent)
         if ($accessToken->otp_verified) {
             return redirect()
                 ->route('student.identity.sent')
-                ->with('email', $accessToken->email);
+                ->with('email', $accessToken->email)
+                ->with('form_purpose', $accessToken->purpose);
         }
 
         return view('student.verify-otp', [
             'token' => $token,
             'email' => $accessToken->email,
+            'isExtension' => $accessToken->isExtension(),
         ]);
     }
 
@@ -109,16 +145,15 @@ class IdentityController extends Controller
         $accessToken = $this->resolveToken($token);
 
         if (! $accessToken) {
-            return redirect()
-                ->route('student.identity')
-                ->withErrors(['email' => 'This verification link is invalid or has expired. Please start again.']);
+            return $this->expiredIdentityRedirect($token);
         }
 
         if ($accessToken->otp_verified) {
             // Already verified — send them to check-email (form link was already sent)
             return redirect()
                 ->route('student.identity.sent')
-                ->with('email', $accessToken->email);
+                ->with('email', $accessToken->email)
+                ->with('form_purpose', $accessToken->purpose);
         }
 
         if (! $accessToken->verifyOtp($request->input('otp'))) {
@@ -140,7 +175,8 @@ class IdentityController extends Controller
         // Show "check your email" page — form URL is only in the email
         return redirect()
             ->route('student.identity.sent')
-            ->with('email', $accessToken->email);
+            ->with('email', $accessToken->email)
+            ->with('form_purpose', $accessToken->purpose);
     }
 
     // ── "Check your email" page — shown after OTP is verified and form link is sent ──
@@ -151,7 +187,9 @@ class IdentityController extends Controller
             return redirect()->route('student.identity');
         }
 
-        return view('student.check-email');
+        return view('student.check-email', [
+            'isExtension' => $request->session()->get('form_purpose') === 'extension',
+        ]);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -167,20 +205,81 @@ class IdentityController extends Controller
             ->first();
     }
 
-    private function hasActiveRequestByEmail(string $email): bool
+    private function newLeaveBlockReason(string $studentId, string $email): ?string
     {
+        $samePerson = function ($query) use ($studentId, $email) {
+            $query->where('student_id', $studentId)
+                ->orWhereRaw('LOWER(email) = ?', [$email]);
+        };
+
         $openLink = LoaAccessToken::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where($samePerson)
             ->whereNull('used_at')
             ->where('expires_at', '>', now())
-            ->where('otp_verified', true)   // only block if they already verified
+            ->where('otp_verified', true)
             ->exists();
 
-        $openApplication = LoaRequest::query()
+        $inReview = LoaRequest::query()
+            ->where($samePerson)
+            ->whereNotIn('status', ['rejected', 'discontinued', 'approved'])
+            ->where(function ($q) {
+                $q->where('status', '!=', 'draft')
+                    ->orWhereHas('accessToken', function ($token) {
+                        $token->where('expires_at', '>', now())->whereNull('used_at');
+                    });
+            })
+            ->exists();
+
+        if ($openLink || $inReview) {
+            return 'This student number or EVSU email already has an active LOA request. Only one request is allowed at a time.';
+        }
+
+        if (LoaRequest::latestApprovedFor($studentId, $email)) {
+            return 'You already have an approved leave. Use Extend leave if you need more time.';
+        }
+
+        return null;
+    }
+
+    private function extensionBlockReason(string $studentId, string $email, ?LoaRequest $parent): ?string
+    {
+        if (LoaRequest::hasInFlightExtension($studentId, $email)) {
+            return 'You already have a leave extension in progress. Only one extension request is allowed at a time.';
+        }
+
+        if (! $parent) {
+            return 'No approved leave was found that matches both this student number and EVSU email.';
+        }
+
+        $openLink = LoaAccessToken::query()
+            ->where('student_id', $studentId)
             ->whereRaw('LOWER(email) = ?', [$email])
-            ->blockingNewRequest()
+            ->where('purpose', 'extension')
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->where('otp_verified', true)
             ->exists();
 
-        return $openLink || $openApplication;
+        if ($openLink) {
+            return 'You already have a leave extension in progress. Only one extension request is allowed at a time.';
+        }
+
+        return null;
+    }
+
+    private function expiredIdentityRedirect(?string $token = null): RedirectResponse
+    {
+        $isExtension = false;
+
+        if (filled($token)) {
+            $access = LoaAccessToken::query()
+                ->where('token_hash', LoaAccessToken::hashPlainToken($token))
+                ->first();
+            $isExtension = $access?->isExtension() ?? false;
+        }
+
+        return redirect()
+            ->route($isExtension ? 'student.extend' : 'student.identity')
+            ->withErrors(['email' => 'This verification link is invalid or has expired. Please start again.']);
     }
 }

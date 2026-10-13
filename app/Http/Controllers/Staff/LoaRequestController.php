@@ -17,16 +17,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LoaRequestController extends Controller
 {
-    public function pipeline(Request $request): View
+    public function pipeline(Request $request): View|\Illuminate\Http\RedirectResponse
     {
         $user = auth()->user();
+
+        if ($user->role->is(\App\Enums\UserRole::Administrator)) {
+            return redirect()->route('staff.profile');
+        }
 
         // ── Filters ───────────────────────────────────────────────────────────
         $filterStatus = $request->string('status')->toString() ?: null;
         $filterDept   = $request->integer('department_id') ?: null;
         $filterSearch = trim($request->string('search')->toString()) ?: null;
 
-        $validStatuses = ['submitted', 'approved', 'rejected', 'discontinued', 'draft'];
+        $validStatuses = ['submitted', 'approved', 'rejected', 'discontinued', 'draft', 'overdue'];
         if ($filterStatus && ! in_array($filterStatus, $validStatuses, true)) {
             $filterStatus = null;
         }
@@ -38,9 +42,9 @@ class LoaRequestController extends Controller
         }
 
         $loas = LoaRequest::query()
-            ->with(['department', 'program', 'deptHeadActor', 'sasoActor', 'campusDirectorActor'])
+            ->with(['department', 'program', 'parentLoa', 'extensions', 'presidentActor', 'deptHeadActor', 'sasoActor', 'campusDirectorActor'])
             ->scopeForUser($user)
-            ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
+            ->when($filterStatus, fn ($q) => $q->applyStatusFilter($filterStatus))
             ->when($filterDept && ! $isDh, fn ($q) => $q->where('department_id', $filterDept))
             ->when($filterSearch, fn ($q) => $q->where(function ($q2) use ($filterSearch) {
                 $q2->where('full_name', 'like', "%{$filterSearch}%")
@@ -85,11 +89,15 @@ class LoaRequestController extends Controller
             'department',
             'program',
             'attachments',
+            'parentLoa',
+            'presidentActor',
             'deptHeadActor',
             'sasoActor',
             'campusDirectorActor',
             'rejectedByActor',
             'discontinuedByActor',
+            'returnedByActor',
+            'extensions',
             'rejectionHistory.rejectedByActor',
         ]);
 
@@ -166,5 +174,16 @@ class LoaRequestController extends Controller
         return redirect()
             ->route('staff.loa.show', $loaRequest)
             ->with('status', "LOA {$loaRequest->control_number} marked as discontinued.");
+    }
+
+    public function markReturned(Request $request, LoaRequest $loaRequest): RedirectResponse
+    {
+        $this->authorize('markReturned', $loaRequest);
+
+        $loaRequest->markReturned($request->user());
+
+        return redirect()
+            ->route('staff.loa.show', $loaRequest)
+            ->with('status', "LOA {$loaRequest->control_number} marked as returned. This is a LeaveFlow record, not an enrollment check.");
     }
 }

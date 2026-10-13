@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Support\PersonName;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,9 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'first_name',
+        'middle_name',
+        'last_name',
         'email',
         'password',
         'role',
@@ -41,6 +45,15 @@ class User extends Authenticatable
             'invitation_sent_at'       => 'datetime',
             'invitation_accepted_at'   => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $user) {
+            if (filled($user->first_name) || filled($user->last_name)) {
+                $user->name = PersonName::compose($user->first_name, $user->middle_name, $user->last_name);
+            }
+        });
     }
 
     public function department(): BelongsTo
@@ -94,6 +107,10 @@ class User extends Authenticatable
         if ($this->role->is(UserRole::DepartmentHead)) {
             return $this->department_id !== null
                 && (int) $request->department_id === (int) $this->department_id;
+        }
+
+        if ($this->role->is(UserRole::President)) {
+            return $request->isExtension();
         }
 
         return true;

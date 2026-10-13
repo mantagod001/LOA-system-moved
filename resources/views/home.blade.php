@@ -17,6 +17,9 @@
                     <a href="{{ route('student.identity') }}" class="inline-flex items-center justify-center rounded-xl bg-maroon-800 px-6 py-3.5 text-center text-base font-semibold text-cream-50 hover:bg-maroon-700">
                         Request LOA
                     </a>
+                    <a href="{{ route('student.extend') }}" class="inline-flex items-center justify-center rounded-xl border border-maroon-800/20 bg-white px-6 py-3.5 text-center text-base font-semibold text-maroon-900 hover:bg-cream-100">
+                        Extend leave
+                    </a>
                     <a href="{{ route('student.status') }}" class="inline-flex items-center justify-center rounded-xl border border-maroon-800/20 bg-white px-6 py-3.5 text-center text-base font-semibold text-maroon-900 hover:bg-cream-100">
                         Check LOA Status
                     </a>
@@ -36,7 +39,8 @@
                 @endguest
             </div>
             @guest
-                <p class="mt-5 text-sm text-maroon-800/70">Students do not create an account. Staff (Department Head, SASO, Campus Director, Registrar, Guidance) sign in here.</p>            @else
+                <p class="mt-5 text-sm text-maroon-800/70">Students do not create an account. Staff (Department Head, SASO, Campus Director, President, Registrar, Guidance) sign in here.</p>
+            @else
                 <p class="mt-5 text-sm text-maroon-800/70">Signed in as <strong>{{ auth()->user()->name }}</strong> &middot; {{ auth()->user()->role->label() }}.</p>
             @endguest
         </div>
@@ -46,7 +50,7 @@
             <ol class="mt-6 space-y-5 text-base leading-relaxed text-maroon-800/80 lg:text-lg">
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">1</span>
-                    <span>Enter your Student ID, full name, and official EVSU email.</span>
+                    <span>For a new leave, enter your student number, name, and EVSU email. To extend, student number and that same email must both match the approved leave.</span>
                 </li>
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">2</span>
@@ -58,7 +62,7 @@
                 </li>
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">4</span>
-                    <span>Department Head, SASO, then Campus Director review and approve it. No e-signature drawing.</span>
+                    <span>Department Head, SASO, then Campus Director review a new leave. Extensions go to the President first, then the same three offices.</span>
                 </li>
             </ol>
         </div>
@@ -78,7 +82,7 @@
         @foreach ([
             ['Public request', 'No student portal. Identity is confirmed through your official EVSU email link.'],
             ['Control Number', 'Each application gets an ID such as EVSU-OC-LOA-2026-0001 for tracking and the PDF.'],
-            ['Multi-level review', 'Department Head (parent call) → SASO Officer → Campus Director sequential approval.'],
+            ['Multi-level review', 'New leave: Department Head → SASO → Campus Director. Extensions: President first, then the same three offices.'],
             ['Registrar & Guidance', 'After Campus Director approval, Registrar and Guidance update their records for clearance.'],
             ['Return follow-up', 'Seven days before your return date, you confirm if you are coming back.'],
             ['Staff workspace', 'Employees are invited by the System Administrator to access their office queue.'],

@@ -30,8 +30,16 @@
                     <dd>{{ $loa->student_id }}</dd>
                 </div>
                 <div class="flex gap-2">
-                    <dt class="w-36 shrink-0 font-medium text-maroon-900">Full name</dt>
-                    <dd>{{ $loa->full_name }}</dd>
+                    <dt class="w-36 shrink-0 font-medium text-maroon-900">First name</dt>
+                    <dd>{{ $loa->first_name ?: $loa->full_name }}</dd>
+                </div>
+                <div class="flex gap-2">
+                    <dt class="w-36 shrink-0 font-medium text-maroon-900">Middle name</dt>
+                    <dd>{{ $loa->middle_name ?: '—' }}</dd>
+                </div>
+                <div class="flex gap-2">
+                    <dt class="w-36 shrink-0 font-medium text-maroon-900">Last name</dt>
+                    <dd>{{ $loa->last_name ?: '—' }}</dd>
                 </div>
                 <div class="flex gap-2">
                     <dt class="w-36 shrink-0 font-medium text-maroon-900">Department</dt>
@@ -44,6 +52,10 @@
                 <div class="flex gap-2">
                     <dt class="w-36 shrink-0 font-medium text-maroon-900">Year level</dt>
                     <dd>{{ $loa->year_level ?? '—' }}</dd>
+                </div>
+                <div class="flex gap-2">
+                    <dt class="w-36 shrink-0 font-medium text-maroon-900">Semester</dt>
+                    <dd>{{ $loa->academicTermLabel() }}</dd>
                 </div>
                 <div class="flex gap-2">
                     <dt class="w-36 shrink-0 font-medium text-maroon-900">Leave period</dt>
@@ -62,7 +74,11 @@
         <div>
             <p class="mb-2 text-sm font-semibold text-maroon-900">What happens next</p>
             <p class="text-sm leading-relaxed text-maroon-800/80">
-                Your Department Head will review your application first, followed by the SASO Officer and Campus Director.
+                @if ($loa->isExtension())
+                    The President will review this extension first, then Department Head, SASO, and Campus Director.
+                @else
+                    Your Department Head will review your application first, followed by the SASO Officer and Campus Director.
+                @endif
                 You will receive an email update at each step. If your request is not approved, you will receive a link to resubmit with any corrections.
             </p>
             <p class="mt-2 text-sm text-maroon-800/80">

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
@@ -11,6 +12,9 @@ class LoaAccessToken extends Model
     protected $fillable = [
         'student_id',
         'full_name',
+        'first_name',
+        'middle_name',
+        'last_name',
         'email',
         'token_hash',
         'expires_at',
@@ -19,6 +23,8 @@ class LoaAccessToken extends Model
         'otp_hash',
         'otp_expires_at',
         'otp_verified',
+        'purpose',
+        'parent_loa_id',
     ];
 
     protected function casts(): array
@@ -36,6 +42,16 @@ class LoaAccessToken extends Model
         return $this->hasOne(LoaRequest::class);
     }
 
+    public function parentLoa(): BelongsTo
+    {
+        return $this->belongsTo(LoaRequest::class, 'parent_loa_id');
+    }
+
+    public function isExtension(): bool
+    {
+        return $this->purpose === 'extension';
+    }
+
     public function isExpired(): bool
     {
         return $this->expires_at->isPast();
@@ -46,37 +62,29 @@ class LoaAccessToken extends Model
         return hash('sha256', $plainToken);
     }
 
-    public static function issue(array $identity, ?string $ipAddress = null): array
-    {
-        // 40 chars = 320 bits of entropy — shorter URLs are less likely to be
-        // line-wrapped by email clients, which was causing "invalid link" errors.
-        $plainToken = Str::random(40);
-
-        $record = self::create([
-            'student_id' => $identity['student_id'],
-            'full_name'  => $identity['full_name'],
-            'email'      => $identity['email'],
-            'token_hash' => self::hashPlainToken($plainToken),
-            'expires_at' => now()->addHours(24),
-            'ip_address' => $ipAddress,
-        ]);
-
-        return [$record, $plainToken];
-    }
-
     /**
-     * Issue a pending token for an email address (before OTP is verified).
-     * student_id and full_name are left empty — filled in after OTP passes.
+     * Issue a pending token after the student enters identity + email.
      * Returns [record, plainToken, plainOtp].
+     *
+     * @param  array{student_id: string, first_name: string, middle_name?: ?string, last_name: string}  $identity
+     * @param  array{purpose?: string, parent_loa_id?: int|null}  $options
      */
-    public static function issueForEmail(string $email, ?string $ipAddress = null): array
+    public static function issueForEmail(string $email, array $identity, ?string $ipAddress = null, array $options = []): array
     {
         $plainToken = Str::random(40);
         $plainOtp   = (string) random_int(100000, 999999); // 6-digit OTP
+        $fullName = \App\Support\PersonName::compose(
+            $identity['first_name'] ?? '',
+            $identity['middle_name'] ?? null,
+            $identity['last_name'] ?? '',
+        );
 
         $record = self::create([
-            'student_id'    => '',          // filled after OTP verified
-            'full_name'     => '',          // filled after OTP verified
+            'student_id'    => $identity['student_id'] ?? '',
+            'full_name'     => $fullName,
+            'first_name'    => $identity['first_name'] ?? '',
+            'middle_name'   => $identity['middle_name'] ?? null,
+            'last_name'     => $identity['last_name'] ?? '',
             'email'         => $email,
             'token_hash'    => self::hashPlainToken($plainToken),
             'expires_at'    => now()->addHours(24),
@@ -84,6 +92,8 @@ class LoaAccessToken extends Model
             'otp_hash'      => hash('sha256', $plainOtp),
             'otp_expires_at'=> now()->addMinutes(10),
             'otp_verified'  => false,
+            'purpose'       => $options['purpose'] ?? 'leave',
+            'parent_loa_id' => $options['parent_loa_id'] ?? null,
         ]);
 
         return [$record, $plainToken, $plainOtp];

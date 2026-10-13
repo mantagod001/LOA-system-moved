@@ -58,6 +58,7 @@
                 <a href="{{ route('home') }}#about" class="rounded-md px-3 py-2 text-sm text-cream-100 hover:bg-white/10">About</a>
                 @guest
                     <a href="{{ route('student.identity') }}" class="rounded-md bg-gold-500 px-3 py-2 text-sm font-semibold text-maroon-950 hover:bg-gold-400">Request LOA</a>
+                    <a href="{{ route('student.extend') }}" class="rounded-md px-3 py-2 text-sm text-cream-100 hover:bg-white/10">Extend leave</a>
                 @endguest
                 @auth
                     <a href="{{ route('staff.dashboard') }}" class="rounded-md px-3 py-2 text-sm hover:bg-white/10">Dashboard</a>
@@ -74,6 +75,7 @@
             <a href="{{ route('home') }}#about" class="rounded-md px-3 py-2 text-sm text-cream-100">About</a>
             @guest
                 <a href="{{ route('student.identity') }}" class="rounded-md bg-gold-500 px-3 py-2 text-sm font-semibold text-maroon-950">Request LOA</a>
+                <a href="{{ route('student.extend') }}" class="rounded-md px-3 py-2 text-sm text-cream-100">Extend leave</a>
             @endguest
             @auth
                 <a href="{{ route('staff.dashboard') }}" class="rounded-md px-3 py-2 text-sm">Dashboard</a>

@@ -21,55 +21,81 @@ class StaffUsersSeeder extends Seeder
 
         $users = [
             [
-                'name' => 'System Administrator',
+                'first_name' => 'System',
+                'middle_name' => null,
+                'last_name' => 'Administrator',
                 'email' => 'admin@evsu.edu.ph',
                 'role' => UserRole::Administrator,
                 'department_id' => null,
             ],
             [
-                'name' => 'Engr. Joseph Jaymel S. Morpos, MSIT',
+                'first_name' => 'Joseph Jaymel',
+                'middle_name' => 'S.',
+                'last_name' => 'Morpos',
                 'email' => 'dcs.head@evsu.edu.ph',
                 'role' => UserRole::DepartmentHead,
                 'department_id' => $dcs?->id,
             ],
             [
-                'name' => 'Dr. Guillermo M. Sodomia',
+                'first_name' => 'Guillermo',
+                'middle_name' => 'M.',
+                'last_name' => 'Sodomia',
                 'email' => 'dte.head@evsu.edu.ph',
                 'role' => UserRole::DepartmentHead,
                 'department_id' => $dte?->id,
             ],
             [
-                'name' => 'Prof. Lyra Calvez',
+                'first_name' => 'Lyra',
+                'middle_name' => null,
+                'last_name' => 'Calvez',
                 'email' => 'htm.head@evsu.edu.ph',
                 'role' => UserRole::DepartmentHead,
                 'department_id' => $htm?->id,
             ],
             [
-                'name' => 'Prof. Alan Reynaldo E. Mabitad',
+                'first_name' => 'Alan Reynaldo',
+                'middle_name' => 'E.',
+                'last_name' => 'Mabitad',
                 'email' => 'dit.head@evsu.edu.ph',
                 'role' => UserRole::DepartmentHead,
                 'department_id' => $dit?->id,
             ],
             [
-                'name' => 'Dr. Joergen T. Arradaza, Jr.',
+                'first_name' => 'Joergen',
+                'middle_name' => 'T.',
+                'last_name' => 'Arradaza',
                 'email' => 'saso@evsu.edu.ph',
                 'role' => UserRole::SasoOfficer,
                 'department_id' => null,
             ],
             [
-                'name' => 'Dr. Maricel A. Gomez',
+                'first_name' => 'Maricel',
+                'middle_name' => 'A.',
+                'last_name' => 'Gomez',
                 'email' => 'director@evsu.edu.ph',
                 'role' => UserRole::CampusDirector,
                 'department_id' => null,
             ],
             [
-                'name' => 'Jonnah R. Benitez, MAEd',
+                'first_name' => 'University',
+                'middle_name' => null,
+                'last_name' => 'President',
+                'email' => 'president@evsu.edu.ph',
+                'role' => UserRole::President,
+                'department_id' => null,
+            ],
+            [
+                'first_name' => 'Jonnah',
+                'middle_name' => 'R.',
+                'last_name' => 'Benitez',
                 'email' => 'registrar@evsu.edu.ph',
                 'role' => UserRole::Registrar,
                 'department_id' => null,
             ],
             [
-                'name' => 'Charlene Pita',
+                'first_name' => 'Charlene',
+                'middle_name' => null,
+                'last_name' => 'Pita',
                 'email' => 'guidance@evsu.edu.ph',
                 'role' => UserRole::Guidance,
                 'department_id' => null,
@@ -81,7 +107,9 @@ class StaffUsersSeeder extends Seeder
 
             if ($user) {
                 $user->update([
-                    'name'          => $record['name'],
+                    'first_name'    => $record['first_name'],
+                    'middle_name'   => $record['middle_name'],
+                    'last_name'     => $record['last_name'],
                     'role'          => $record['role'],
                     'department_id' => $record['department_id'],
                 ]);
@@ -89,7 +117,9 @@ class StaffUsersSeeder extends Seeder
             }
 
             User::query()->create([
-                'name'                    => $record['name'],
+                'first_name'              => $record['first_name'],
+                'middle_name'             => $record['middle_name'],
+                'last_name'               => $record['last_name'],
                 'email'                   => $record['email'],
                 'password'                => $password,
                 'role'                    => $record['role'],

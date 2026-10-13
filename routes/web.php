@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\HomeController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Staff\DashboardController;
 use App\Http\Controllers\Staff\LoaRequestController;
 use App\Http\Controllers\Staff\ProfileController;
 use App\Http\Controllers\Staff\ReportsController;
+use App\Http\Controllers\Student\GrammarCheckController;
 use App\Http\Controllers\Student\IdentityController;
 use App\Http\Controllers\Student\LoaFormController;
 use App\Http\Controllers\Student\ResubmitController;
@@ -23,6 +25,20 @@ Route::middleware('guest')->group(function () {
     Route::post('/staff/login', [LoginController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('login.store');
+
+    Route::get('/staff/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
+    Route::post('/staff/forgot-password', [ForgotPasswordController::class, 'store'])
+        ->middleware('throttle:staff-password')
+        ->name('password.request.store');
+    Route::get('/staff/forgot-password/verify/{token}', [ForgotPasswordController::class, 'showVerify'])->name('password.verify');
+    Route::post('/staff/forgot-password/verify/{token}', [ForgotPasswordController::class, 'verify'])
+        ->middleware('throttle:6,1')
+        ->name('password.verify.store');
+    Route::get('/staff/forgot-password/check-email', [ForgotPasswordController::class, 'sent'])->name('password.sent');
+    Route::get('/staff/reset-password/{token}', [ForgotPasswordController::class, 'showReset'])->name('password.reset');
+    Route::post('/staff/reset-password/{token}', [ForgotPasswordController::class, 'reset'])
+        ->middleware('throttle:6,1')
+        ->name('password.reset.store');
 });
 
 Route::post('/staff/logout', [LoginController::class, 'destroy'])
@@ -49,7 +65,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/reports',   ReportsController::class)->name('staff.reports');
     Route::get('/staff/profile',          [ProfileController::class, 'show'])->name('staff.profile');
     Route::patch('/staff/profile',        [ProfileController::class, 'updateName'])->name('staff.profile.name');
-    Route::patch('/staff/profile/password', [ProfileController::class, 'updatePassword'])->name('staff.profile.password');
 
     // LOA detail / approve / reject / PDF download (dept-scoped)
     Route::middleware('dept.scope')->group(function () {
@@ -59,6 +74,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/staff/loa/{loaRequest}/approve',               [LoaRequestController::class, 'approve'])->name('staff.loa.approve');
         Route::post('/staff/loa/{loaRequest}/reject',                [LoaRequestController::class, 'reject'])->name('staff.loa.reject');
         Route::post('/staff/loa/{loaRequest}/discontinue',           [LoaRequestController::class, 'discontinue'])->name('staff.loa.discontinue');
+        Route::post('/staff/loa/{loaRequest}/returned',              [LoaRequestController::class, 'markReturned'])->name('staff.loa.returned');
     });
 
     // Admin — user management (Administrator role only, enforced in controller)
@@ -79,6 +95,10 @@ Route::get('/loa/request',            [IdentityController::class, 'create'])->na
 Route::post('/loa/request',           [IdentityController::class, 'store'])
     ->middleware('throttle:loa-identity')
     ->name('student.identity.store');
+Route::get('/loa/extend',            [IdentityController::class, 'create'])->name('student.extend');
+Route::post('/loa/extend',           [IdentityController::class, 'store'])
+    ->middleware('throttle:loa-identity')
+    ->name('student.extend.store');
 Route::get('/loa/request/check-email',[IdentityController::class, 'sent'])->name('student.identity.sent');
 Route::get('/loa/request/verify/{token}',  [IdentityController::class, 'showVerify'])->name('student.identity.verify');
 Route::post('/loa/request/verify/{token}', [IdentityController::class, 'verify'])
@@ -87,6 +107,9 @@ Route::post('/loa/request/verify/{token}', [IdentityController::class, 'verify']
 
 Route::get('/loa/form/{token}',           [LoaFormController::class, 'show'])->name('student.form.show');
 Route::post('/loa/form/{token}',          [LoaFormController::class, 'store'])->name('student.form.store');
+Route::post('/loa/form/{token}/grammar',  [GrammarCheckController::class, 'form'])
+    ->middleware('throttle:grammar-check')
+    ->name('student.form.grammar');
 Route::get('/loa/form/{token}/submitted', [LoaFormController::class, 'submitted'])->name('student.form.submitted');
 
 // ── LOA resubmission (token from rejection email) ─────────────────────────────
@@ -94,6 +117,9 @@ Route::get('/loa/resubmit/{token}',       [ResubmitController::class, 'show'])->
 Route::post('/loa/resubmit/{token}',      [ResubmitController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('student.resubmit.store');
+Route::post('/loa/resubmit/{token}/grammar', [GrammarCheckController::class, 'resubmit'])
+    ->middleware('throttle:grammar-check')
+    ->name('student.resubmit.grammar');
 Route::get('/loa/resubmit/{token}/done',  [ResubmitController::class, 'done'])->name('student.resubmit.done');
 
 // ── LOA status check (public — no login needed) ───────────────────────────────

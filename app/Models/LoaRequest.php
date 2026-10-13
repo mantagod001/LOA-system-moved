@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\AcademicSemester;
 use App\Enums\ApprovalStageStatus;
 use App\Enums\UserRole;
+use App\Support\PersonName;
 use App\Mail\LoaApprovedMail;
 use App\Mail\LoaRejectedMail;
 use App\Models\LoaRejectionHistory;
@@ -20,18 +22,31 @@ class LoaRequest extends Model
         'loa_access_token_id',
         'student_id',
         'full_name',
+        'first_name',
+        'middle_name',
+        'last_name',
         'email',
         'department_id',
         'program_id',
         'year_level',
+        'academic_year',
+        'semester',
         'start_date',
         'return_date',
         'reason',
         'parent_full_name',
+        'parent_first_name',
+        'parent_middle_name',
+        'parent_last_name',
         'parent_relationship',
         'parent_phone',
         'status',
+        'is_extension',
+        'parent_loa_id',
         'submitted_at',
+        'president_status',
+        'president_at',
+        'president_by',
         'dept_head_status',
         'dept_head_at',
         'dept_head_by',
@@ -47,6 +62,8 @@ class LoaRequest extends Model
         'discontinued_at',
         'discontinued_by',
         'discontinuation_reason',
+        'returned_at',
+        'returned_by',
         'resubmit_token_hash',
         'resubmit_token_expires_at',
         'resubmit_count',
@@ -58,16 +75,55 @@ class LoaRequest extends Model
             'start_date'              => 'date',
             'return_date'             => 'date',
             'submitted_at'            => 'datetime',
+            'is_extension'            => 'boolean',
+            'president_at'            => 'datetime',
             'dept_head_at'            => 'datetime',
             'saso_at'                 => 'datetime',
             'campus_director_at'      => 'datetime',
             'rejected_at'             => 'datetime',
             'discontinued_at'         => 'datetime',
+            'returned_at'             => 'datetime',
             'resubmit_token_expires_at' => 'datetime',
+            'president_status'        => ApprovalStageStatus::class,
             'dept_head_status'        => ApprovalStageStatus::class,
             'saso_status'             => ApprovalStageStatus::class,
             'campus_director_status'  => ApprovalStageStatus::class,
+            'semester'                => AcademicSemester::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $loa) {
+            if (filled($loa->first_name) || filled($loa->last_name)) {
+                $loa->full_name = self::composeName($loa->first_name, $loa->middle_name, $loa->last_name);
+            }
+
+            if (filled($loa->parent_first_name) || filled($loa->parent_last_name)) {
+                $loa->parent_full_name = self::composeName(
+                    $loa->parent_first_name,
+                    $loa->parent_middle_name,
+                    $loa->parent_last_name,
+                );
+            }
+        });
+    }
+
+    public static function composeName(?string $first, ?string $middle, ?string $last): string
+    {
+        return PersonName::compose($first, $middle, $last);
+    }
+
+    public function academicTermLabel(): string
+    {
+        $semester = $this->semester instanceof AcademicSemester ? $this->semester->label() : null;
+        $year = $this->academic_year;
+
+        if (! $semester && ! $year) {
+            return '—';
+        }
+
+        return trim(($semester ?? '').' '.($year ?? '')) ?: '—';
     }
 
     public function accessToken(): BelongsTo
@@ -88,6 +144,26 @@ class LoaRequest extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(LoaAttachment::class);
+    }
+
+    public function parentLoa(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_loa_id');
+    }
+
+    public function extensions(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_loa_id');
+    }
+
+    public function isExtension(): bool
+    {
+        return (bool) $this->is_extension;
+    }
+
+    public function presidentActor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'president_by');
     }
 
     public function deptHeadActor(): BelongsTo
@@ -113,6 +189,11 @@ class LoaRequest extends Model
     public function discontinuedByActor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'discontinued_by');
+    }
+
+    public function returnedByActor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'returned_by');
     }
 
     public function rejectionHistory(): HasMany
@@ -143,7 +224,62 @@ class LoaRequest extends Model
             return $query->where('department_id', $user->department_id);
         }
 
+        if ($user->role->is(UserRole::President)) {
+            return $query->where('is_extension', true);
+        }
+
         return $query;
+    }
+
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'approved')
+            ->whereNull('returned_at')
+            ->whereNotNull('return_date')
+            ->whereDate('return_date', '<', now()->toDateString())
+            ->whereDoesntHave('extensions', function ($extensions) {
+                $extensions->where('status', 'approved');
+            });
+    }
+
+    public function scopeApplyStatusFilter(Builder $query, ?string $status): Builder
+    {
+        if (! $status) {
+            return $query;
+        }
+
+        if ($status === 'overdue') {
+            return $query->overdue();
+        }
+
+        return $query->where('status', $status);
+    }
+
+    public function isOverdue(): bool
+    {
+        if ($this->status !== 'approved' || $this->returned_at || ! $this->return_date) {
+            return false;
+        }
+
+        if ($this->return_date->toDateString() >= now()->toDateString()) {
+            return false;
+        }
+
+        if ($this->relationLoaded('extensions')) {
+            return $this->extensions->where('status', 'approved')->isEmpty();
+        }
+
+        return ! $this->extensions()->where('status', 'approved')->exists();
+    }
+
+    public function daysOverdue(): int
+    {
+        if (! $this->isOverdue()) {
+            return 0;
+        }
+
+        return (int) abs($this->return_date->copy()->startOfDay()->diffInDays(now()->startOfDay()));
     }
 
     public function statusLabel(): string
@@ -153,6 +289,7 @@ class LoaRequest extends Model
             'rejected' => 'Rejected',
             'discontinued' => 'Withdrawn / Discontinued',
             'draft' => 'Draft',
+            'approved' => 'Approved',
             default => ucfirst(str_replace(['_', '-'], ' ', $this->status ?? 'unknown')),
         };
     }
@@ -175,12 +312,64 @@ class LoaRequest extends Model
         }
 
         $year = now()->year;
+        $prefix = $this->isExtension() ? 'EVSU-OC-EXT' : 'EVSU-OC-LOA';
         $sequence = static::query()
             ->whereNotNull('control_number')
-            ->where('control_number', 'like', "EVSU-OC-LOA-{$year}-%")
+            ->where('control_number', 'like', "{$prefix}-{$year}-%")
             ->count() + 1;
 
-        $this->control_number = sprintf('EVSU-OC-LOA-%d-%04d', $year, $sequence);
+        $this->control_number = sprintf('%s-%d-%04d', $prefix, $year, $sequence);
+    }
+
+    /** @return list<string> */
+    public function approvalStageOrder(): array
+    {
+        if ($this->isExtension()) {
+            return ['president', 'dept_head', 'saso', 'campus_director'];
+        }
+
+        return ['dept_head', 'saso', 'campus_director'];
+    }
+
+    public static function stageLabel(string $key): string
+    {
+        return match ($key) {
+            'president'       => 'President',
+            'dept_head'       => 'Department Head',
+            'saso'            => 'SASO Officer',
+            'campus_director' => 'Campus Director',
+            default           => ucfirst(str_replace('_', ' ', $key)),
+        };
+    }
+
+    public function stageStatus(string $key): ?ApprovalStageStatus
+    {
+        return $this->{$key.'_status'} ?? null;
+    }
+
+    /**
+     * @return list<array{key: string, label: string, status: ?ApprovalStageStatus, actor: ?User, at: mixed}>
+     */
+    public function timelineStages(): array
+    {
+        $rows = [];
+        foreach ($this->approvalStageOrder() as $key) {
+            $rows[] = [
+                'key'    => $key,
+                'label'  => self::stageLabel($key),
+                'status' => $this->stageStatus($key),
+                'actor'  => match ($key) {
+                    'president'       => $this->presidentActor,
+                    'dept_head'       => $this->deptHeadActor,
+                    'saso'            => $this->sasoActor,
+                    'campus_director' => $this->campusDirectorActor,
+                    default           => null,
+                },
+                'at'     => $this->{$key.'_at'} ?? null,
+            ];
+        }
+
+        return $rows;
     }
 
     public function determineCurrentStage(): string
@@ -193,22 +382,21 @@ class LoaRequest extends Model
             return 'discontinued';
         }
 
-        $dh   = $this->dept_head_status;
-        $saso = $this->saso_status;
-        $cd   = $this->campus_director_status;
+        $approved = 0;
+        foreach ($this->approvalStageOrder() as $key) {
+            $status = $this->stageStatus($key);
+            if ($status === null || $status->is(ApprovalStageStatus::Pending)) {
+                return $key;
+            }
+            if ($status->is(ApprovalStageStatus::Rejected)) {
+                return 'rejected';
+            }
+            if ($status->is(ApprovalStageStatus::Approved)) {
+                $approved++;
+            }
+        }
 
-        if ($dh === null || $dh->is(ApprovalStageStatus::Pending))   return 'dept_head';
-        if ($dh->is(ApprovalStageStatus::Rejected))                   return 'rejected';
-
-        if ($saso === null || $saso->is(ApprovalStageStatus::Pending)) return 'saso';
-        if ($saso->is(ApprovalStageStatus::Rejected))                  return 'rejected';
-
-        if ($cd === null || $cd->is(ApprovalStageStatus::Pending))    return 'campus_director';
-        if ($cd->is(ApprovalStageStatus::Rejected))                   return 'rejected';
-
-        if ($dh->is(ApprovalStageStatus::Approved)
-            && $saso->is(ApprovalStageStatus::Approved)
-            && $cd->is(ApprovalStageStatus::Approved)) {
+        if ($approved === count($this->approvalStageOrder())) {
             return 'done';
         }
 
@@ -218,6 +406,7 @@ class LoaRequest extends Model
     public function currentStageLabel(): string
     {
         return match ($this->determineCurrentStage()) {
+            'president'       => 'Pending: President',
             'dept_head'       => 'Pending: Dept Head',
             'saso'            => 'Pending: SASO',
             'campus_director' => 'Pending: Campus Director',
@@ -230,18 +419,19 @@ class LoaRequest extends Model
 
     public function currentStageStatus(): ?ApprovalStageStatus
     {
-        return match ($this->determineCurrentStage()) {
-            'dept_head'       => $this->dept_head_status,
-            'saso'            => $this->saso_status,
-            'campus_director' => $this->campus_director_status,
-            default           => null,
-        };
+        $stage = $this->determineCurrentStage();
+
+        if (! in_array($stage, $this->approvalStageOrder(), true)) {
+            return null;
+        }
+
+        return $this->stageStatus($stage);
     }
 
     private function roleStageKey(User $user): ?string
     {
-        // Registrar and Guidance are view-only — they have no approval stage key.
         return match ($user->role) {
+            UserRole::President       => $this->isExtension() ? 'president' : null,
             UserRole::DepartmentHead  => 'dept_head',
             UserRole::SasoOfficer     => 'saso',
             UserRole::CampusDirector  => 'campus_director',
@@ -251,18 +441,14 @@ class LoaRequest extends Model
 
     private function priorStagesAllApproved(string $stageKey): bool
     {
-        $order = ['dept_head', 'saso', 'campus_director'];
+        $order = $this->approvalStageOrder();
         $idx = array_search($stageKey, $order, true);
         if ($idx === false || $idx === 0) {
-            return true;
+            return $idx === 0;
         }
 
         for ($i = 0; $i < $idx; $i++) {
-            $priorStatus = match ($order[$i]) {
-                'dept_head'       => $this->dept_head_status,
-                'saso'            => $this->saso_status,
-                'campus_director' => $this->campus_director_status,
-            };
+            $priorStatus = $this->stageStatus($order[$i]);
             if (! $priorStatus || ! $priorStatus->is(ApprovalStageStatus::Approved)) {
                 return false;
             }
@@ -282,11 +468,7 @@ class LoaRequest extends Model
             return false;
         }
 
-        $currentStatus = match ($stageKey) {
-            'dept_head'       => $this->dept_head_status,
-            'saso'            => $this->saso_status,
-            'campus_director' => $this->campus_director_status,
-        };
+        $currentStatus = $this->stageStatus($stageKey);
 
         if (! $currentStatus || ! $currentStatus->is(ApprovalStageStatus::Pending)) {
             return false;
@@ -308,7 +490,7 @@ class LoaRequest extends Model
         }
 
         $now   = now();
-        $order = ['dept_head', 'saso', 'campus_director'];
+        $order = $this->approvalStageOrder();
         $idx   = array_search($stageKey, $order, true);
 
         $fullyApproved = false;
@@ -329,10 +511,15 @@ class LoaRequest extends Model
             $this->update($changes);
             $this->refresh();
 
-            // All 3 stages approved → fully done.
-            if ($this->dept_head_status?->is(ApprovalStageStatus::Approved)
-                && $this->saso_status?->is(ApprovalStageStatus::Approved)
-                && $this->campus_director_status?->is(ApprovalStageStatus::Approved)) {
+            $allApproved = true;
+            foreach ($order as $key) {
+                if (! $this->stageStatus($key)?->is(ApprovalStageStatus::Approved)) {
+                    $allApproved = false;
+                    break;
+                }
+            }
+
+            if ($allApproved) {
                 $this->update(['status' => 'approved']);
                 $fullyApproved = true;
             }
@@ -342,7 +529,7 @@ class LoaRequest extends Model
         if ($fullyApproved) {
             $this->refresh();
             try {
-                $this->load(['department', 'program', 'deptHeadActor', 'sasoActor', 'campusDirectorActor']);
+                $this->load(['department', 'program', 'presidentActor', 'deptHeadActor', 'sasoActor', 'campusDirectorActor']);
                 Mail::to($this->email)->send(new LoaApprovedMail($this));
             } catch (\Throwable $e) {
                 report($e);
@@ -372,15 +559,10 @@ class LoaRequest extends Model
             ]);
 
             // Record this rejection in the history table.
-            $stageLabels = [
-                'dept_head'       => 'Department Head',
-                'saso'            => 'SASO Officer',
-                'campus_director' => 'Campus Director',
-            ];
             LoaRejectionHistory::create([
                 'loa_request_id' => $this->id,
                 'stage_key'      => $stageKey,
-                'stage_label'    => $stageLabels[$stageKey] ?? ucfirst($stageKey),
+                'stage_label'    => self::stageLabel($stageKey),
                 'rejected_by'    => $user->id,
                 'rejected_at'    => $now,
                 'reason'         => $reason,
@@ -419,6 +601,7 @@ class LoaRequest extends Model
             UserRole::Administrator,
             UserRole::SasoOfficer,
             UserRole::CampusDirector,
+            UserRole::President,
             UserRole::Registrar    => true,
             UserRole::DepartmentHead => $user->department_id
                 && (int) $user->department_id === (int) $this->department_id,
@@ -435,6 +618,32 @@ class LoaRequest extends Model
             'discontinued_at'       => $now,
             'discontinued_by'       => $user->id,
             'discontinuation_reason'=> $reason,
+        ]);
+    }
+
+    public function canBeMarkedReturnedBy(User $user): bool
+    {
+        if ($this->status !== 'approved' || $this->returned_at) {
+            return false;
+        }
+
+        return match ($user->role) {
+            UserRole::SasoOfficer,
+            UserRole::CampusDirector,
+            UserRole::Registrar,
+            UserRole::Guidance => true,
+            UserRole::President => $this->isExtension(),
+            UserRole::DepartmentHead => $user->department_id
+                && (int) $user->department_id === (int) $this->department_id,
+            default => false,
+        };
+    }
+
+    public function markReturned(User $user): void
+    {
+        $this->update([
+            'returned_at' => now(),
+            'returned_by' => $user->id,
         ]);
     }
 
@@ -487,7 +696,7 @@ class LoaRequest extends Model
                 ->orderByDesc('rejected_at')
                 ->value('stage_key');
 
-            $order = ['dept_head', 'saso', 'campus_director'];
+            $order = $this->approvalStageOrder();
             $rejectedIdx = $rejectedStageKey ? array_search($rejectedStageKey, $order, true) : 0;
 
             if (! $rejectedStageKey) {
@@ -521,10 +730,15 @@ class LoaRequest extends Model
                 'department_id'     => $fields['department_id'] ?? $this->department_id,
                 'program_id'        => $fields['program_id']    ?? $this->program_id,
                 'year_level'        => $fields['year_level']    ?? $this->year_level,
+                'academic_year'     => $fields['academic_year'] ?? $this->academic_year,
+                'semester'          => $fields['semester']      ?? $this->semester,
                 'reason'            => $fields['reason'],
                 'start_date'        => $fields['start_date'],
                 'return_date'       => $fields['return_date'],
-                'parent_full_name'  => $fields['parent_full_name'],
+                'parent_first_name'   => $fields['parent_first_name'] ?? $this->parent_first_name,
+                'parent_middle_name'  => $fields['parent_middle_name'] ?? $this->parent_middle_name,
+                'parent_last_name'    => $fields['parent_last_name'] ?? $this->parent_last_name,
+                'parent_full_name'    => $fields['parent_full_name'] ?? $this->parent_full_name,
                 'parent_relationship' => $fields['parent_relationship'],
                 'parent_phone'      => $fields['parent_phone'],
                 // Reset overall status
@@ -564,5 +778,47 @@ class LoaRequest extends Model
         }
 
         return $current . '.1';
+    }
+
+    public static function latestApprovedFor(string $studentId, string $email): ?self
+    {
+        $email = strtolower($email);
+
+        return static::query()
+            ->where('status', 'approved')
+            ->where(function ($q) use ($studentId, $email) {
+                $q->where('student_id', $studentId)
+                    ->orWhereRaw('LOWER(email) = ?', [$email]);
+            })
+            ->latest('id')
+            ->first();
+    }
+
+    public static function approvedMatchingIdAndEmail(string $studentId, string $email): ?self
+    {
+        return static::query()
+            ->where('status', 'approved')
+            ->where('student_id', $studentId)
+            ->whereRaw('LOWER(email) = ?', [strtolower($email)])
+            ->latest('id')
+            ->first();
+    }
+
+    public static function hasInFlightExtension(string $studentId, string $email): bool
+    {
+        $email = strtolower($email);
+
+        return static::query()
+            ->where('is_extension', true)
+            ->whereNotIn('status', ['rejected', 'discontinued'])
+            ->where('student_id', $studentId)
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where(function ($q) {
+                $q->where('status', '!=', 'draft')
+                    ->orWhereHas('accessToken', function ($token) {
+                        $token->where('expires_at', '>', now())->whereNull('used_at');
+                    });
+            })
+            ->exists();
     }
 }

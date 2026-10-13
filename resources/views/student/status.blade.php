@@ -61,11 +61,7 @@
             $stageName  = $loa->determineCurrentStage();
             $stageStatus = $loa->currentStageStatus();
 
-            $stages = [
-                ['label' => 'Department Head', 'status' => $loa->dept_head_status, 'actor' => $loa->deptHeadActor,        'at' => $loa->dept_head_at],
-                ['label' => 'SASO Officer',    'status' => $loa->saso_status,      'actor' => $loa->sasoActor,            'at' => $loa->saso_at],
-                ['label' => 'Campus Director', 'status' => $loa->campus_director_status, 'actor' => $loa->campusDirectorActor, 'at' => $loa->campus_director_at],
-            ];
+            $stages = $loa->timelineStages();
         @endphp
 
         <div class="mt-5 space-y-5">
@@ -76,8 +72,15 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-widest text-maroon-700">Control Number</p>
                         <p class="mt-0.5 font-mono text-xl font-bold text-maroon-950">{{ $loa->control_number }}</p>
+                        @if ($loa->isExtension())
+                            <p class="mt-1 text-xs font-semibold text-indigo-800">Leave extension{{ $loa->parentLoa?->control_number ? ' of '.$loa->parentLoa->control_number : '' }}</p>
+                        @endif
                     </div>
-                    @if ($stageName === 'done' || $loa->status === 'approved')
+                    @if ($loa->isOverdue())
+                        <span class="rounded-full border border-red-600 bg-red-600 px-3 py-1 text-sm font-semibold text-white">Overdue return</span>
+                    @elseif ($loa->returned_at)
+                        <span class="rounded-full border border-emerald-600 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">Returned</span>
+                    @elseif ($stageName === 'done' || $loa->status === 'approved')
                         <span class="rounded-full border border-emerald-600 bg-emerald-600 px-3 py-1 text-sm font-semibold text-white">✓ Fully Approved</span>
                     @elseif ($loa->status === 'rejected')
                         <span class="rounded-full border border-red-600 bg-red-600 px-3 py-1 text-sm font-semibold text-white">✕ Not Approved</span>
@@ -100,6 +103,10 @@
                     <div>
                         <dt class="text-xs text-maroon-900/50">Program</dt>
                         <dd class="mt-0.5 text-maroon-950">{{ $loa->program?->name ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-maroon-900/50">Semester</dt>
+                        <dd class="mt-0.5 text-maroon-950">{{ $loa->academicTermLabel() }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-maroon-900/50">Leave period</dt>
@@ -171,7 +178,20 @@
                     @endforeach
                 </ol>
 
-                @if ($stageName === 'done' || $loa->status === 'approved')
+                @if ($loa->isOverdue())
+                    <div class="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+                        <p class="text-sm font-semibold text-red-800">Expected return date has passed</p>
+                        <p class="text-xs text-red-800/80 mt-1">
+                            You were expected back on {{ $loa->return_date?->format('F j, Y') }}.
+                            This is not an enrollment record. Contact SASO or the Registrar if you have returned or need an extension.
+                        </p>
+                    </div>
+                @elseif ($loa->returned_at)
+                    <div class="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
+                        <p class="text-sm font-semibold text-emerald-700">Marked as returned</p>
+                        <p class="text-xs text-emerald-600 mt-0.5">Recorded in LeaveFlow on {{ $loa->returned_at->format('F j, Y') }}.</p>
+                    </div>
+                @elseif ($stageName === 'done' || $loa->status === 'approved')
                     <div class="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
                         <p class="text-sm font-semibold text-emerald-700">✓ Fully Approved</p>
                         <p class="text-xs text-emerald-600 mt-0.5">All approval stages completed. Please proceed to the Registrar's Office.</p>

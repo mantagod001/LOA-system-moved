@@ -24,5 +24,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('loa-identity', function (Request $request) {
             return Limit::perMinute(8)->by($request->ip());
         });
+
+        RateLimiter::for('staff-password', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('grammar-check', function (Request $request) {
+            return Limit::perMinute(6)->by($request->ip());
+        });
     }
 }

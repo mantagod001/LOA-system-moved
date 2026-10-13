@@ -95,7 +95,8 @@ class LoaPdfGenerator
 
         // Program and year level — 11pt regular
         $pdf->SetFont(self::FONT, '', 11);
-        $programYear = trim(($loa->program?->name ?? '') . '  ' . ($loa->year_level ?? ''));
+        $term = $loa->academicTermLabel();
+        $programYear = trim(($loa->program?->name ?? '').'  '.($loa->year_level ?? '').($term !== '—' ? '  '.$term : ''));
 
         // Available line width is ~3.05 inches (~77.5mm)
         $maxWidthMm   = self::mm(3.05);

@@ -16,28 +16,34 @@
             <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4">
                 @csrf
 
-                {{-- Name + Email --}}
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
-                        <label for="name" class="block text-xs font-medium text-maroon-900 mb-1">Full name</label>
-                        <input id="name" name="name" type="text"
-                               value="{{ old('name') }}" required
-                               placeholder="Lastname, Firstname M."
-                               class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('name') border-red-400 bg-red-50 @enderror">
-                        @error('name')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
+                        <label for="first_name" class="block text-xs font-medium text-maroon-900 mb-1">First name</label>
+                        <input id="first_name" name="first_name" type="text" value="{{ old('first_name') }}" required
+                               class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('first_name') border-red-400 bg-red-50 @enderror">
+                        @error('first_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label for="email" class="block text-xs font-medium text-maroon-900 mb-1">EVSU email</label>
-                        <input id="email" name="email" type="email"
-                               value="{{ old('email') }}" required
-                               placeholder="name@evsu.edu.ph"
-                               class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('email') border-red-400 bg-red-50 @enderror">
-                        @error('email')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                        @enderror
+                        <label for="middle_name" class="block text-xs font-medium text-maroon-900 mb-1">Middle name</label>
+                        <input id="middle_name" name="middle_name" type="text" value="{{ old('middle_name') }}"
+                               class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700">
                     </div>
+                    <div>
+                        <label for="last_name" class="block text-xs font-medium text-maroon-900 mb-1">Last name</label>
+                        <input id="last_name" name="last_name" type="text" value="{{ old('last_name') }}" required
+                               class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('last_name') border-red-400 bg-red-50 @enderror">
+                        @error('last_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <div>
+                    <label for="email" class="block text-xs font-medium text-maroon-900 mb-1">EVSU email</label>
+                    <input id="email" name="email" type="email"
+                           value="{{ old('email') }}" required
+                           placeholder="name@evsu.edu.ph"
+                           class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2.5 text-sm text-maroon-950 outline-none focus:ring-2 focus:ring-maroon-700 @error('email') border-red-400 bg-red-50 @enderror">
+                    @error('email')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Role + Department --}}

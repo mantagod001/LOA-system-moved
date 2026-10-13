@@ -298,4 +298,169 @@ document.addEventListener('DOMContentLoaded', () => {
             renderList();
         });
     }
+
+    const leaveStart = document.querySelector('[data-leave-start]');
+    const leaveReturn = document.querySelector('[data-leave-return]');
+    const leaveHint = document.querySelector('[data-leave-limit-hint]');
+
+    if (leaveStart && leaveReturn) {
+        const toLocalIso = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+        const parseLocal = (value) => new Date(`${value}T00:00:00`);
+        const formatHint = (date) => date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+        const syncLeaveLimit = () => {
+            const extensionFrom = leaveReturn.getAttribute('data-leave-extension-from');
+            if (extensionFrom) {
+                const currentEnd = parseLocal(extensionFrom);
+                const min = parseLocal(extensionFrom);
+                min.setDate(min.getDate() + 1);
+                const max = parseLocal(extensionFrom);
+                max.setFullYear(max.getFullYear() + 1);
+                const minValue = toLocalIso(min);
+                const maxValue = toLocalIso(max);
+                leaveReturn.min = minValue;
+                leaveReturn.max = maxValue;
+                if (leaveHint) {
+                    leaveHint.textContent = `Current leave ends ${formatHint(currentEnd)}. New return date: ${formatHint(min)} through ${formatHint(max)}.`;
+                }
+                if (leaveReturn.value && (leaveReturn.value < minValue || leaveReturn.value > maxValue)) {
+                    leaveReturn.value = '';
+                }
+                return;
+            }
+
+            if (!leaveStart.value) {
+                leaveReturn.removeAttribute('max');
+                if (leaveHint) leaveHint.textContent = 'Select a start date to see the latest allowed return date.';
+                return;
+            }
+            const max = parseLocal(leaveStart.value);
+            max.setFullYear(max.getFullYear() + 1);
+            const maxValue = toLocalIso(max);
+            leaveReturn.min = leaveStart.value;
+            leaveReturn.max = maxValue;
+            if (leaveHint) {
+                leaveHint.textContent = `Latest allowed return date: ${formatHint(max)}.`;
+            }
+            if (leaveReturn.value && leaveReturn.value > maxValue) {
+                leaveReturn.value = maxValue;
+            }
+            if (leaveReturn.value && leaveReturn.value <= leaveStart.value) {
+                leaveReturn.value = '';
+            }
+        };
+        leaveStart.addEventListener('change', syncLeaveLimit);
+        leaveReturn.addEventListener('change', syncLeaveLimit);
+        syncLeaveLimit();
+    }
+
+    const attachmentRows = document.querySelector('[data-attachment-rows]');
+    const addAttachmentRow = document.querySelector('[data-add-attachment-row]');
+
+    if (attachmentRows && addAttachmentRow) {
+        const syncRemoveButtons = () => {
+            const rows = attachmentRows.querySelectorAll('[data-attachment-row]');
+            rows.forEach((row) => {
+                const btn = row.querySelector('[data-remove-attachment-row]');
+                if (btn) btn.classList.toggle('hidden', rows.length < 2);
+            });
+        };
+
+        addAttachmentRow.addEventListener('click', () => {
+            const rows = attachmentRows.querySelectorAll('[data-attachment-row]');
+            if (rows.length >= 10) return;
+            const clone = rows[0].cloneNode(true);
+            clone.querySelectorAll('select').forEach((el) => { el.selectedIndex = 0; });
+            clone.querySelectorAll('input[type="file"]').forEach((el) => { el.value = ''; });
+            attachmentRows.appendChild(clone);
+            syncRemoveButtons();
+        });
+
+        attachmentRows.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-remove-attachment-row]');
+            if (!btn) return;
+            const rows = attachmentRows.querySelectorAll('[data-attachment-row]');
+            if (rows.length < 2) return;
+            btn.closest('[data-attachment-row]')?.remove();
+            syncRemoveButtons();
+        });
+
+        syncRemoveButtons();
+    }
+
+    const grammarBox = document.querySelector('[data-grammar-check]');
+    if (grammarBox) {
+        const source = grammarBox.querySelector('[data-grammar-source]');
+        const runBtn = grammarBox.querySelector('[data-grammar-run]');
+        const status = grammarBox.querySelector('[data-grammar-status]');
+        const preview = grammarBox.querySelector('[data-grammar-preview]');
+        const suggested = grammarBox.querySelector('[data-grammar-suggested]');
+        const acceptBtn = grammarBox.querySelector('[data-grammar-accept]');
+        const keepBtn = grammarBox.querySelector('[data-grammar-keep]');
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const url = grammarBox.getAttribute('data-grammar-url');
+
+        const setStatus = (text, isError = false) => {
+            if (!status) return;
+            status.textContent = text || '';
+            status.classList.toggle('hidden', !text);
+            status.classList.toggle('text-red-700', isError);
+            status.classList.toggle('text-maroon-700', !isError);
+        };
+
+        runBtn?.addEventListener('click', async () => {
+            const text = (source?.value || '').trim();
+            if (!text) {
+                setStatus('Write a reason first, then check grammar.', true);
+                return;
+            }
+            runBtn.disabled = true;
+            setStatus('Checking grammar…');
+            preview?.classList.add('hidden');
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ text: source.value }),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    setStatus(data.message || 'Grammar check is not available right now.', true);
+                    return;
+                }
+                if (!data.changed) {
+                    setStatus('No grammar changes suggested.');
+                    return;
+                }
+                if (suggested) suggested.textContent = data.suggested;
+                preview?.classList.remove('hidden');
+                setStatus(`${data.fixes || 1} suggestion${(data.fixes || 1) === 1 ? '' : 's'}. Review below.`);
+            } catch (e) {
+                setStatus('Grammar check is not available right now. You can still submit.', true);
+            } finally {
+                runBtn.disabled = false;
+            }
+        });
+
+        acceptBtn?.addEventListener('click', () => {
+            if (source && suggested) source.value = suggested.textContent || source.value;
+            preview?.classList.add('hidden');
+            setStatus('Suggested wording applied. You can still edit it.');
+        });
+
+        keepBtn?.addEventListener('click', () => {
+            preview?.classList.add('hidden');
+            setStatus('Kept your original wording.');
+        });
+    }
 });

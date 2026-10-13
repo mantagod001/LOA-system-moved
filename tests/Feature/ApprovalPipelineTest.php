@@ -69,6 +69,7 @@ class ApprovalPipelineTest extends TestCase
             ->assertSeeText('App ID')
             ->assertSeeText('Student ID')
             ->assertSeeText('Student Name')
+            ->assertSeeText('President Status')
             ->assertSeeText('Dept Head Status')
             ->assertSeeText('SASO Status')
             ->assertSeeText('Campus Director Status')
@@ -295,10 +296,10 @@ class ApprovalPipelineTest extends TestCase
      */
     public function test_reports_page_renders_filters_stats_charts(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Administrator]);
+        $saso = User::factory()->create(['role' => UserRole::SasoOfficer]);
         $this->seedLoas(3, 2);
 
-        $this->actingAs($admin)
+        $this->actingAs($saso)
             ->get(route('staff.reports'))
             ->assertOk()
             // Sidebar (staff shell)
@@ -332,7 +333,9 @@ class ApprovalPipelineTest extends TestCase
     public function test_profile_page_shows_user_info(): void
     {
         $user = User::factory()->create([
-            'name' => 'Maria Santos',
+            'first_name' => 'Maria',
+            'middle_name' => null,
+            'last_name' => 'Santos',
             'email' => 'maria@evsu.edu.ph',
             'role' => UserRole::Registrar,
         ]);
@@ -343,8 +346,9 @@ class ApprovalPipelineTest extends TestCase
             ->assertSeeText('Maria Santos')
             ->assertSeeText('maria@evsu.edu.ph')
             ->assertSeeText('Registrar')
-            ->assertSeeText('Edit Name')
-            ->assertSeeText('Change Password')
+            ->assertSeeText('Edit name')
+            ->assertDontSeeText('Change Password')
+            ->assertDontSeeText('Your Activity')
             ->assertDontSeeText('Account actions coming soon')
             ->assertDontSeeText('future release');
     }

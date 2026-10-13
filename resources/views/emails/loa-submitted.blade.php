@@ -42,8 +42,16 @@
                                     <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->student_id }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Full name</td>
-                                    <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->full_name }}</td>
+                                    <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">First name</td>
+                                    <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->first_name ?: $loa->full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Middle name</td>
+                                    <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->middle_name ?: '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Last name</td>
+                                    <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->last_name ?: '—' }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Department</td>
@@ -56,6 +64,10 @@
                                 <tr>
                                     <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Year level</td>
                                     <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->year_level ?? '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Semester</td>
+                                    <td style="padding:5px 0;font-size:13px;color:#2b070d;font-weight:600;">{{ $loa->academicTermLabel() }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:5px 0;font-size:13px;color:#8a1c30;vertical-align:top;">Leave period</td>
@@ -106,7 +118,11 @@
                         <td style="padding:24px 32px 0;">
                             <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#2b070d;">What happens next</p>
                             <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#4a0e18;">
-                                Your Department Head will review your application and may contact your parent or guardian at the number you provided.
+                                @if ($loa->isExtension())
+                                    The President will review this extension first. After that, Department Head, SASO, and Campus Director follow the same sequence as a new leave.
+                                @else
+                                    Your Department Head will review your application and may contact your parent or guardian at the number you provided.
+                                @endif
                                 You will receive updates by email as your request moves through each step.
                             </p>
                         </td>

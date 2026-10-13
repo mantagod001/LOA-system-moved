@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Enums\AcademicSemester;
+use App\Enums\AttachmentCategory;
+use App\Enums\ParentRelationship;
 use App\Enums\UserRole;
 use App\Mail\LoaResubmittedStaffMail;
 use App\Mail\LoaSubmittedMail;
@@ -28,13 +31,17 @@ class ResubmitController extends Controller
             return $loa;
         }
 
-        $loa->load(['department', 'program', 'rejectedByActor', 'attachments']);
+        $loa->load(['department', 'program', 'parentLoa', 'rejectedByActor', 'attachments']);
 
         return view('student.resubmit', [
             'token'       => $token,
             'loa'         => $loa,
             'departments' => Department::query()->orderBy('name')->get(),
             'programs'    => Program::query()->orderBy('name')->get(['id', 'department_id', 'code', 'name']),
+            'relationships' => ParentRelationship::cases(),
+            'attachmentCategories' => AttachmentCategory::cases(),
+            'academicYears' => AcademicSemester::yearOptions($loa->academic_year),
+            'semesters' => AcademicSemester::cases(),
         ]);
     }
 
@@ -55,23 +62,55 @@ class ResubmitController extends Controller
                 Rule::exists('programs', 'id')->where('department_id', $request->integer('department_id')),
             ],
             'year_level'         => ['required', 'string', 'max:20'],
+            'academic_year'      => ['required', 'string', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! AcademicSemester::isValidYear(is_string($value) ? $value : null)) {
+                    $fail('Choose a valid school year, e.g. 2026-2027.');
+                }
+            }],
+            'semester'           => ['required', Rule::enum(AcademicSemester::class)],
             'start_date'         => ['required', 'date'],
             'return_date'        => ['required', 'date', 'after:start_date'],
             'reason'             => ['required', 'string', 'max:5000'],
-            'parent_full_name'   => ['required', 'string', 'max:255'],
-            'parent_relationship'=> ['required', 'string', 'max:100'],
+            'parent_first_name'  => ['required', 'string', 'max:100'],
+            'parent_middle_name' => ['nullable', 'string', 'max:100'],
+            'parent_last_name'   => ['required', 'string', 'max:100'],
+            'parent_relationship'=> ['required', Rule::enum(ParentRelationship::class)],
             'parent_phone'       => ['required', 'string', 'regex:/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/'],
             'attachments'        => ['nullable', 'array', 'max:10'],
-            'attachments.*'      => ['file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
+            'attachments.*'      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
+            'attachment_categories' => ['nullable', 'array', 'max:10'],
+            'attachment_categories.*' => ['nullable', 'string', Rule::enum(AttachmentCategory::class)],
         ], [
             'parent_phone.regex' => 'Enter a valid 10-digit Philippine mobile number, e.g. 917-123-4567.',
+            'return_date.after' => 'The return date must be after the start date.',
         ]);
 
-        $maxReturn = now()->parse($validated['start_date'])->addYear();
-        if (now()->parse($validated['return_date'])->gt($maxReturn)) {
-            return back()
-                ->withInput()
-                ->withErrors(['return_date' => 'The approved leave period cannot exceed one year.']);
+        if ($loa->isExtension()) {
+            $parent = $loa->parentLoa ?: $loa->parentLoa()->first();
+            if (! $parent?->return_date) {
+                return back()->withInput()->withErrors(['return_date' => 'The original leave could not be found.']);
+            }
+            $minReturn = $parent->return_date->copy()->addDay();
+            $maxReturn = $parent->return_date->copy()->addYear();
+            $newReturn = now()->parse($validated['return_date']);
+            if ($newReturn->lt($minReturn) || $newReturn->gt($maxReturn)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['return_date' => 'The new return date must be after the current leave end and cannot add more than one extra year.']);
+            }
+            $validated['start_date'] = $parent->start_date?->toDateString() ?? $validated['start_date'];
+            $validated['department_id'] = $parent->department_id;
+            $validated['program_id'] = $parent->program_id;
+            $validated['year_level'] = $parent->year_level;
+            $validated['academic_year'] = $parent->academic_year;
+            $validated['semester'] = $parent->semester?->value ?? $validated['semester'];
+        } else {
+            $maxReturn = now()->parse($validated['start_date'])->addYear();
+            if (now()->parse($validated['return_date'])->gt($maxReturn)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['return_date' => 'The approved leave period cannot exceed one year.']);
+            }
         }
 
         // Normalize phone: strip leading zero exactly once, then prepend +63
@@ -86,31 +125,46 @@ class ResubmitController extends Controller
             'department_id'       => $validated['department_id'],
             'program_id'          => $validated['program_id'],
             'year_level'          => $validated['year_level'],
+            'academic_year'       => $validated['academic_year'],
+            'semester'            => $validated['semester'],
             'reason'              => $validated['reason'],
             'start_date'          => $validated['start_date'],
             'return_date'         => $validated['return_date'],
-            'parent_full_name'    => $validated['parent_full_name'],
-            'parent_relationship' => $validated['parent_relationship'],
+            'parent_first_name'   => $validated['parent_first_name'],
+            'parent_middle_name'  => $validated['parent_middle_name'] ?? null,
+            'parent_last_name'    => $validated['parent_last_name'],
+            'parent_relationship' => ParentRelationship::from($validated['parent_relationship'])->label(),
             'parent_phone'        => $phone,
         ]);
 
         // Handle new attachments if provided
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $path = $file->store('loa-attachments/' . $loa->id, 'local');
+        $categories = $request->input('attachment_categories', []);
+        foreach ($request->file('attachments', []) as $index => $file) {
+            if (! $file) {
+                continue;
+            }
 
-                $safeName = mb_substr(
-                    preg_replace('/[^\w.\-_ ]/u', '_', basename((string) $file->getClientOriginalName())),
-                    0, 255
-                );
-
-                $loa->attachments()->create([
-                    'original_name' => $safeName ?: 'attachment',
-                    'path'          => $path,
-                    'mime_type'     => $file->getMimeType() ?? 'application/octet-stream',
-                    'size'          => $file->getSize(),
+            $category = $categories[$index] ?? null;
+            if (! $category || ! AttachmentCategory::tryFrom($category)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    "attachment_categories.{$index}" => 'Choose a document type for each file.',
                 ]);
             }
+
+            $path = $file->store('loa-attachments/' . $loa->id, 'local');
+
+            $safeName = mb_substr(
+                preg_replace('/[^\w.\-_ ]/u', '_', basename((string) $file->getClientOriginalName())),
+                0, 255
+            );
+
+            $loa->attachments()->create([
+                'original_name' => $safeName ?: 'attachment',
+                'category'      => $category,
+                'path'          => $path,
+                'mime_type'     => $file->getMimeType() ?? 'application/octet-stream',
+                'size'          => $file->getSize(),
+            ]);
         }
 
         // Send confirmation email to student.
@@ -161,6 +215,7 @@ class ResubmitController extends Controller
         $stage = $fresh->determineCurrentStage();
 
         $roleMap = [
+            'president'       => UserRole::President,
             'dept_head'       => UserRole::DepartmentHead,
             'saso'            => UserRole::SasoOfficer,
             'campus_director' => UserRole::CampusDirector,

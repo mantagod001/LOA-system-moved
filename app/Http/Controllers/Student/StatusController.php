@@ -29,6 +29,8 @@ class StatusController extends Controller
                 ->with([
                     'department',
                     'program',
+                    'parentLoa',
+                    'presidentActor',
                     'deptHeadActor',
                     'sasoActor',
                     'campusDirectorActor',

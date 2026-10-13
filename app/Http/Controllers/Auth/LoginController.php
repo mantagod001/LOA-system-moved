@@ -42,7 +42,11 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('staff.dashboard'));
+        $home = auth()->user()->role->is(\App\Enums\UserRole::Administrator)
+            ? route('staff.profile')
+            : route('staff.dashboard');
+
+        return redirect()->intended($home);
     }
 
     public function destroy(Request $request): RedirectResponse

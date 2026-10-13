@@ -5,6 +5,28 @@
 
 @section('content')
 
+    @if ($loa->isOverdue())
+        <div class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+            <p class="text-sm font-semibold text-red-800">Expected return date has passed</p>
+            <p class="mt-1 text-sm text-red-800/80">
+                This student was expected back on {{ $loa->return_date?->format('F j, Y') }}
+                ({{ $loa->daysOverdue() }} day{{ $loa->daysOverdue() === 1 ? '' : 's' }} overdue).
+                LeaveFlow does not see enrollment — mark returned only if your office has confirmed they came back.
+            </p>
+        </div>
+    @elseif ($loa->returned_at)
+        <div class="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+            <p class="text-sm font-semibold text-emerald-800">Marked as returned</p>
+            <p class="mt-1 text-sm text-emerald-800/80">
+                Recorded {{ $loa->returned_at->format('F j, Y g:i A') }}
+                @if ($loa->returnedByActor)
+                    by {{ $loa->returnedByActor->name }}
+                @endif
+                . This is a LeaveFlow note, not an SIS enrollment record.
+            </p>
+        </div>
+    @endif
+
     {{-- ── Top meta bar ─────────────────────────────────────────────────────── --}}
     <div class="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-maroon-900/10 bg-white/70 px-5 py-3 shadow-sm">
         <span class="text-sm text-maroon-900/70">
@@ -27,6 +49,16 @@
             <span class="rounded-full border border-emerald-600 bg-emerald-600 px-3 py-1 text-xs font-medium text-white">Fully Approved</span>
         @elseif ($stageName === 'rejected')
             <span class="rounded-full border border-red-600 bg-red-600 px-3 py-1 text-xs font-medium text-white">Rejected</span>
+        @endif
+        @if ($loa->isOverdue())
+            <span class="rounded-full border border-red-600 bg-red-600 px-3 py-1 text-xs font-medium text-white">Overdue return</span>
+        @elseif ($loa->returned_at)
+            <span class="rounded-full border border-emerald-600 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Returned</span>
+        @endif
+        @if ($loa->isExtension())
+            <span class="rounded-full border border-indigo-400 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">
+                Extension{{ $loa->parentLoa?->control_number ? ' of '.$loa->parentLoa->control_number : '' }}
+            </span>
         @endif
         @if ($loa->resubmit_count > 0)
             <span class="rounded-full border border-amber-500 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
@@ -52,12 +84,28 @@
                         <p class="mt-0.5 font-mono font-semibold text-maroon-950">{{ $loa->student_id ?? '—' }}</p>
                     </div>
                     <div>
+                        <p class="text-xs text-maroon-900/50">First name</p>
+                        <p class="mt-0.5 text-maroon-950">{{ $loa->first_name ?: $loa->full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-maroon-900/50">Middle name</p>
+                        <p class="mt-0.5 text-maroon-950">{{ $loa->middle_name ?: '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-maroon-900/50">Last name</p>
+                        <p class="mt-0.5 text-maroon-950">{{ $loa->last_name ?: '—' }}</p>
+                    </div>
+                    <div>
                         <p class="text-xs text-maroon-900/50">Email</p>
                         <p class="mt-0.5 text-maroon-950 truncate">{{ $loa->email }}</p>
                     </div>
                     <div>
                         <p class="text-xs text-maroon-900/50">Year Level</p>
                         <p class="mt-0.5 text-maroon-950">{{ $loa->year_level ?? '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-maroon-900/50">Semester</p>
+                        <p class="mt-0.5 text-maroon-950">{{ $loa->academicTermLabel() }}</p>
                     </div>
                     <div>
                         <p class="text-xs text-maroon-900/50">Program</p>
@@ -124,7 +172,7 @@
                                 <span class="text-lg leading-none">{{ $icon }}</span>
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-medium text-maroon-950 group-hover/file:text-maroon-700">{{ $file->original_name }}</p>
-                                    <p class="text-xs text-maroon-900/40">{{ number_format($file->size / 1024, 1) }} KB · {{ strtoupper($ext) }}</p>
+                                    <p class="text-xs text-maroon-900/40">{{ $file->category?->label() ? $file->category->label().' · ' : '' }}{{ number_format($file->size / 1024, 1) }} KB · {{ strtoupper($ext) }}</p>
                                 </div>
                                 <span class="shrink-0 text-xs font-semibold text-maroon-700 opacity-0 group-hover/file:opacity-100 transition">Open ↗</span>
                             </a>
@@ -217,11 +265,7 @@
                 <h2 class="mb-4 text-xs font-semibold uppercase tracking-wider text-maroon-600">Approval Timeline</h2>
 
                 @php
-                    $stages = [
-                        ['label' => 'Department Head', 'status' => $loa->dept_head_status, 'actor' => $loa->deptHeadActor, 'at' => $loa->dept_head_at],
-                        ['label' => 'SASO Officer',    'status' => $loa->saso_status,       'actor' => $loa->sasoActor,     'at' => $loa->saso_at],
-                        ['label' => 'Campus Director', 'status' => $loa->campus_director_status, 'actor' => $loa->campusDirectorActor, 'at' => $loa->campus_director_at],
-                    ];
+                    $stages = $loa->timelineStages();
                 @endphp
 
                 <ol class="relative space-y-0 border-l-2 border-maroon-900/10 pl-5">
@@ -314,6 +358,16 @@
                     @endcan
                 </div>
             @endcanany
+
+            @can('markReturned', $loa)
+                <form method="POST" action="{{ route('staff.loa.returned', $loa) }}" class="m-0" onsubmit="return confirm('Mark this student as returned from leave? This is a LeaveFlow record only.');">
+                    @csrf
+                    <button type="submit"
+                            class="block w-full rounded-xl border border-emerald-600 bg-white px-4 py-2.5 text-center text-sm font-semibold text-emerald-800 shadow-sm hover:bg-emerald-50">
+                        Mark student as returned
+                    </button>
+                </form>
+            @endcan
 
             {{-- Discontinue button (shown separately — available even after approval) --}}
             @can('discontinue', $loa)

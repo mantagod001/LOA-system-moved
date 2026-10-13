@@ -13,7 +13,7 @@ class LoaRequestPolicy
         // Administrator gets full bypass for all abilities EXCEPT approve/reject/discontinue —
         // they are not part of the approval workflow and cannot act outside valid LOA statuses.
         if ($user->role->is(UserRole::Administrator)
-            && ! in_array($ability, ['approve', 'reject', 'discontinue'], true)) {
+            && ! in_array($ability, ['approve', 'reject', 'discontinue', 'markReturned'], true)) {
             return true;
         }
 
@@ -27,6 +27,10 @@ class LoaRequestPolicy
 
     public function view(User $user, LoaRequest $loaRequest): bool
     {
+        if ($user->role->is(UserRole::President)) {
+            return $loaRequest->isExtension();
+        }
+
         if (! $user->role->is(UserRole::DepartmentHead)) {
             return true;
         }
@@ -74,5 +78,10 @@ class LoaRequestPolicy
     public function discontinue(User $user, LoaRequest $loaRequest): bool
     {
         return $loaRequest->canBeDiscontinuedBy($user);
+    }
+
+    public function markReturned(User $user, LoaRequest $loaRequest): bool
+    {
+        return $loaRequest->canBeMarkedReturnedBy($user);
     }
 }

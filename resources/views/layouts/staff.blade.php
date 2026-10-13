@@ -60,6 +60,7 @@
             </div>
 
             <nav class="flex flex-col gap-1" aria-label="Staff navigation">
+                @unless ($user?->role->is(\App\Enums\UserRole::Administrator))
                 <a href="{{ route('staff.dashboard') }}"
                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ str_starts_with($activeRoute, 'staff.dashboard') ? 'bg-maroon-800/80 text-cream-50' : 'text-cream-100/85 hover:bg-white/10 hover:text-cream-50' }}">
                     <span aria-hidden="true" class="text-base leading-none">▣</span>
@@ -75,6 +76,7 @@
                     <span aria-hidden="true" class="text-base leading-none">📊</span>
                     <span>Reports &amp; Analytics</span>
                 </a>
+                @endunless
                 <a href="{{ route('staff.profile') }}"
                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ str_starts_with($activeRoute, 'staff.profile') ? 'bg-maroon-800/80 text-cream-50' : 'text-cream-100/85 hover:bg-white/10 hover:text-cream-50' }}">
                     <span aria-hidden="true" class="text-base leading-none">👤</span>
@@ -124,9 +126,11 @@
             </button>
         </div>
         <nav class="hidden flex-col gap-1 border-t border-white/10 px-3 py-3 text-sm" data-nav-panel>
+            @unless ($user?->role->is(\App\Enums\UserRole::Administrator))
             <a href="{{ route('staff.dashboard') }}" class="rounded-md px-3 py-2 hover:bg-white/10">▣ Dashboard</a>
             <a href="{{ route('staff.pipeline') }}" class="rounded-md px-3 py-2 hover:bg-white/10">⇌ Approval Pipeline</a>
             <a href="{{ route('staff.reports') }}" class="rounded-md px-3 py-2 hover:bg-white/10">📊 Reports &amp; Analytics</a>
+            @endunless
             <a href="{{ route('staff.profile') }}" class="rounded-md px-3 py-2 hover:bg-white/10">👤 User Profile</a>
             @if ($user?->role->is(\App\Enums\UserRole::Administrator))
                 <a href="{{ route('admin.users.index') }}" class="rounded-md px-3 py-2 hover:bg-white/10">⚙ User Management</a>

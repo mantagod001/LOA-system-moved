@@ -1,3 +1,4 @@
+@php $isExtension = $isExtension ?? false; @endphp
 @extends('layouts.app')
 
 @section('title', 'Check your email')
@@ -5,8 +6,8 @@
 @section('content')
 <x-page-shell eyebrow="Link sent" title="Check your email">
     <x-slot:lead>
-        We sent a private LOA form link to <strong>{{ session('email') }}</strong>.
-        Open that message and click <strong>Open LOA form</strong>. Use the button the same day you receive the email.
+        We sent a private {{ $isExtension ? 'leave extension' : 'LOA' }} form link to <strong>{{ session('email') }}</strong>.
+        Open that message and click <strong>{{ $isExtension ? 'Open extension form' : 'Open LOA form' }}</strong>. Use the button the same day you receive the email.
     </x-slot:lead>
 
     <div class="space-y-4 rounded-2xl border border-maroon-900/10 bg-white p-6 sm:p-8">
@@ -34,7 +35,7 @@
         </ul>
 
         <div class="flex flex-wrap gap-4 pt-2">
-            <a href="{{ route('student.identity') }}" class="text-sm font-semibold text-maroon-700 underline underline-offset-2">Request a new link</a>
+            <a href="{{ route($isExtension ? 'student.extend' : 'student.identity') }}" class="text-sm font-semibold text-maroon-700 underline underline-offset-2">Request a new link</a>
             <a href="{{ route('home') }}" class="text-sm font-semibold text-maroon-700">Back to home</a>
         </div>
     </div>

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Enums\AcademicSemester;
 use App\Enums\ApprovalStageStatus;
+use App\Enums\AttachmentCategory;
+use App\Enums\ParentRelationship;
 use App\Mail\LoaSubmittedMail;
 use App\Models\Department;
 use App\Models\LoaAccessToken;
@@ -26,24 +29,29 @@ class LoaFormController extends Controller
             return $access;
         }
 
-        $request = $access->loaRequest ?? LoaRequest::create([
-            'loa_access_token_id' => $access->id,
-            'student_id' => '',   // filled by student in the form
-            'full_name'  => '',   // filled by student in the form
-            'email'      => $access->email,
-            'status'     => 'draft',
-        ]);
+        $request = $access->loaRequest ?? $this->startDraft($access);
+
+        if ($request instanceof RedirectResponse) {
+            return $request;
+        }
 
         if ($request->isSubmitted()) {
             return redirect()->route('student.form.submitted', ['token' => $token]);
         }
 
+        $request->load(['parentLoa', 'department', 'program']);
+
         return view('student.form', [
             'token' => $token,
             'access' => $access,
             'loa' => $request,
+            'parentLoa' => $request->parentLoa,
             'departments' => Department::query()->orderBy('name')->get(),
             'programs' => Program::query()->orderBy('name')->get(['id', 'department_id', 'code', 'name']),
+            'relationships' => ParentRelationship::cases(),
+            'attachmentCategories' => AttachmentCategory::cases(),
+            'academicYears' => AcademicSemester::yearOptions($request->academic_year),
+            'semesters' => AcademicSemester::cases(),
         ]);
     }
 
@@ -55,7 +63,7 @@ class LoaFormController extends Controller
             return $access;
         }
 
-        $loa = $access->loaRequest;
+        $loa = $access->loaRequest?->load('parentLoa');
 
         if (! $loa) {
             return redirect()->route('student.form.show', ['token' => $token]);
@@ -65,7 +73,22 @@ class LoaFormController extends Controller
             return redirect()->route('student.form.submitted', ['token' => $token]);
         }
 
-        $validated = $request->validate([
+        $editableRules = [
+            'start_date' => ['required', 'date'],
+            'return_date' => ['required', 'date', 'after:start_date'],
+            'reason' => ['required', 'string', 'max:5000'],
+            'parent_first_name' => ['required', 'string', 'max:100'],
+            'parent_middle_name' => ['nullable', 'string', 'max:100'],
+            'parent_last_name' => ['required', 'string', 'max:100'],
+            'parent_relationship' => ['required', Rule::enum(ParentRelationship::class)],
+            'parent_phone' => ['required', 'string', 'regex:/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/'],
+            'attachments' => ['nullable', 'array', 'max:10'],
+            'attachments.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
+            'attachment_categories' => ['nullable', 'array', 'max:10'],
+            'attachment_categories.*' => ['nullable', 'string', Rule::enum(AttachmentCategory::class)],
+        ];
+
+        $identityRules = $loa->isExtension() ? [] : [
             'student_id'  => ['required', 'string', 'regex:/^\d{4}-\d{4,6}$/'],
             'department_id' => ['required', 'exists:departments,id'],
             'program_id' => [
@@ -73,24 +96,52 @@ class LoaFormController extends Controller
                 Rule::exists('programs', 'id')->where('department_id', $request->integer('department_id')),
             ],
             'year_level' => ['required', 'string', 'max:20'],
-            'full_name' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date'],
-            'return_date' => ['required', 'date', 'after:start_date'],
-            'reason' => ['required', 'string', 'max:5000'],
-            'parent_full_name' => ['required', 'string', 'max:255'],
-            'parent_relationship' => ['required', 'string', 'max:100'],
-            'parent_phone' => ['required', 'string', 'regex:/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/'],
-            'attachments' => ['nullable', 'array', 'max:10'],
-            'attachments.*' => ['file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
-        ], [
+            'academic_year' => ['required', 'string', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! AcademicSemester::isValidYear(is_string($value) ? $value : null)) {
+                    $fail('Choose a valid school year, e.g. 2026-2027.');
+                }
+            }],
+            'semester' => ['required', Rule::enum(AcademicSemester::class)],
+            'first_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+        ];
+
+        $validated = $request->validate(array_merge($identityRules, $editableRules), [
             'parent_phone.regex' => 'Enter a valid 10-digit Philippine mobile number, e.g. 917-123-4567.',
+            'return_date.after' => 'The return date must be after the start date.',
         ]);
 
-        $maxReturn = now()->parse($validated['start_date'])->addYear();
-        if (now()->parse($validated['return_date'])->gt($maxReturn)) {
-            return back()
-                ->withInput()
-                ->withErrors(['return_date' => 'The approved leave period cannot exceed one year.']);
+        if ($loa->isExtension()) {
+            $parent = $loa->parentLoa;
+            if (! $parent?->return_date) {
+                return back()->withInput()->withErrors(['return_date' => 'The original leave could not be found.']);
+            }
+            $minReturn = $parent->return_date->copy()->addDay();
+            $maxReturn = $parent->return_date->copy()->addYear();
+            $newReturn = now()->parse($validated['return_date']);
+            if ($newReturn->lt($minReturn) || $newReturn->gt($maxReturn)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['return_date' => 'The new return date must be after the current leave end and cannot add more than one extra year.']);
+            }
+            $validated['start_date'] = $parent->start_date?->toDateString() ?? $validated['start_date'];
+            $validated['student_id'] = $parent->student_id;
+            $validated['department_id'] = $parent->department_id;
+            $validated['program_id'] = $parent->program_id;
+            $validated['year_level'] = $parent->year_level;
+            $validated['academic_year'] = $parent->academic_year;
+            $validated['semester'] = $parent->semester?->value;
+            $validated['first_name'] = $parent->first_name ?: $loa->first_name;
+            $validated['middle_name'] = $parent->middle_name ?: $loa->middle_name;
+            $validated['last_name'] = $parent->last_name ?: $loa->last_name;
+        } else {
+            $maxReturn = now()->parse($validated['start_date'])->addYear();
+            if (now()->parse($validated['return_date'])->gt($maxReturn)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['return_date' => 'The approved leave period cannot exceed one year.']);
+            }
         }
 
         DB::transaction(function () use ($loa, $validated, $access, $request) {
@@ -103,34 +154,59 @@ class LoaFormController extends Controller
 
             $loa->fill([
                 'student_id'          => $validated['student_id'],
-                'full_name'           => $validated['full_name'],
+                'first_name'          => $validated['first_name'],
+                'middle_name'         => $validated['middle_name'] ?? null,
+                'last_name'           => $validated['last_name'],
                 'department_id'       => $validated['department_id'],
                 'program_id'          => $validated['program_id'],
                 'year_level'          => $validated['year_level'],
+                'academic_year'       => $validated['academic_year'],
+                'semester'            => $validated['semester'],
                 'start_date'          => $validated['start_date'],
                 'return_date'         => $validated['return_date'],
                 'reason'              => $validated['reason'],
-                'parent_full_name'    => $validated['parent_full_name'],
-                'parent_relationship' => $validated['parent_relationship'],
+                'parent_first_name'   => $validated['parent_first_name'],
+                'parent_middle_name'  => $validated['parent_middle_name'] ?? null,
+                'parent_last_name'    => $validated['parent_last_name'],
+                'parent_relationship' => ParentRelationship::from($validated['parent_relationship'])->label(),
                 'parent_phone'        => $phone,
             ]);
             $loa->assignControlNumber();
             $loa->status = 'submitted';
-            $loa->dept_head_status = ApprovalStageStatus::Pending;
             $loa->submitted_at = now();
+            if ($loa->isExtension()) {
+                $loa->president_status = ApprovalStageStatus::Pending;
+                $loa->dept_head_status = null;
+            } else {
+                $loa->dept_head_status = ApprovalStageStatus::Pending;
+            }
             $loa->save();
 
             // Backfill student_id + full_name onto the token for duplicate checks
             $access->update([
                 'student_id' => $validated['student_id'],
-                'full_name'  => $validated['full_name'],
+                'full_name'  => LoaRequest::composeName(
+                    $validated['first_name'],
+                    $validated['middle_name'] ?? null,
+                    $validated['last_name'],
+                ),
             ]);
 
-            foreach ($request->file('attachments', []) as $file) {
+            $categories = $request->input('attachment_categories', []);
+            foreach ($request->file('attachments', []) as $index => $file) {
+                if (! $file) {
+                    continue;
+                }
+
+                $category = $categories[$index] ?? null;
+                if (! $category || ! AttachmentCategory::tryFrom($category)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        "attachment_categories.{$index}" => 'Choose a document type for each file.',
+                    ]);
+                }
+
                 $path = $file->store('loa-attachments/'.$loa->id, 'local');
 
-                // Use server-side finfo detection — never trust the client-supplied MIME type.
-                // Sanitize the original filename to prevent path traversal and null bytes.
                 $safeName = mb_substr(
                     preg_replace('/[^\w.\-_ ]/u', '_', basename((string) $file->getClientOriginalName())),
                     0, 255
@@ -138,6 +214,7 @@ class LoaFormController extends Controller
 
                 $loa->attachments()->create([
                     'original_name' => $safeName ?: 'attachment',
+                    'category'      => $category,
                     'path'          => $path,
                     'mime_type'     => $file->getMimeType() ?? 'application/octet-stream',
                     'size'          => $file->getSize(),
@@ -178,14 +255,59 @@ class LoaFormController extends Controller
         return view('student.submitted', ['loa' => $loa]);
     }
 
+    private function startDraft(LoaAccessToken $access): LoaRequest|RedirectResponse
+    {
+        $attrs = [
+            'loa_access_token_id' => $access->id,
+            'student_id'  => $access->student_id ?: '',
+            'first_name'  => $access->first_name,
+            'middle_name' => $access->middle_name,
+            'last_name'   => $access->last_name,
+            'full_name'   => $access->full_name ?: '',
+            'email'       => $access->email,
+            'status'      => 'draft',
+        ];
+
+        if ($access->isExtension()) {
+            $parent = $access->parentLoa ?: LoaRequest::find($access->parent_loa_id);
+            if (! $parent || $parent->status !== 'approved') {
+                return redirect()
+                    ->route('student.extend')
+                    ->withErrors(['email' => 'No approved leave was found to extend. Request a new LOA first.']);
+            }
+
+            $attrs = array_merge($attrs, [
+                'is_extension'        => true,
+                'parent_loa_id'       => $parent->id,
+                'department_id'       => $parent->department_id,
+                'program_id'          => $parent->program_id,
+                'year_level'          => $parent->year_level,
+                'academic_year'       => $parent->academic_year,
+                'semester'            => $parent->semester,
+                'start_date'          => $parent->start_date,
+                'first_name'          => $parent->first_name ?: $attrs['first_name'],
+                'middle_name'         => $parent->middle_name ?: $attrs['middle_name'],
+                'last_name'           => $parent->last_name ?: $attrs['last_name'],
+                'full_name'           => $parent->full_name ?: $attrs['full_name'],
+                'student_id'          => $parent->student_id,
+                'parent_first_name'   => $parent->parent_first_name,
+                'parent_middle_name'  => $parent->parent_middle_name,
+                'parent_last_name'    => $parent->parent_last_name,
+                'parent_full_name'    => $parent->parent_full_name,
+                'parent_relationship' => $parent->parent_relationship,
+                'parent_phone'        => $parent->parent_phone,
+            ]);
+        }
+
+        return LoaRequest::create($attrs);
+    }
+
     private function resolveToken(string $token, bool $allowUsed = false): LoaAccessToken|RedirectResponse
     {
         // Guard: token must be exactly 40 alphanumeric chars — anything else is
         // obviously invalid (email client truncation, partial paste, etc.)
         if (! preg_match('/^[A-Za-z0-9]{40}$/', $token)) {
-            return redirect()
-                ->route('student.identity')
-                ->withErrors(['token' => 'That form link appears to be incomplete or was copied incorrectly. Please request a new one.']);
+            return $this->invalidFormRedirect(null, 'That form link appears to be incomplete or was copied incorrectly. Please request a new one.');
         }
 
         $access = LoaAccessToken::query()
@@ -193,15 +315,11 @@ class LoaFormController extends Controller
             ->first();
 
         if (! $access) {
-            return redirect()
-                ->route('student.identity')
-                ->withErrors(['token' => 'That form link is invalid. It may have been altered or already replaced. Please request a new one.']);
+            return $this->invalidFormRedirect(null, 'That form link is invalid. It may have been altered or already replaced. Please request a new one.');
         }
 
         if ($access->isExpired()) {
-            return redirect()
-                ->route('student.identity')
-                ->withErrors(['token' => 'That form link expired 24 hours after it was sent. Please request a new one.']);
+            return $this->invalidFormRedirect($access, 'That form link expired 24 hours after it was sent. Please request a new one.');
         }
 
         if (! $allowUsed && $access->used_at && $access->loaRequest?->isSubmitted()) {
@@ -216,5 +334,14 @@ class LoaFormController extends Controller
         }
 
         return $access;
+    }
+
+    private function invalidFormRedirect(?LoaAccessToken $access, string $message): RedirectResponse
+    {
+        $route = $access?->isExtension() ? 'student.extend' : 'student.identity';
+
+        return redirect()
+            ->route($route)
+            ->withErrors(['token' => $message]);
     }
 }

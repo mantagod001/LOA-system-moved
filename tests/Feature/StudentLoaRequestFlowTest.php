@@ -20,7 +20,7 @@ class StudentLoaRequestFlowTest extends TestCase
 
     public function test_landing_page_renders(): void
     {
-        $this->get('/')->assertOk()->assertSee('Request LOA')->assertSee('Staff login');
+        $this->get('/')->assertOk()->assertSee('Request LOA')->assertSee('Extend leave')->assertSee('Staff login');
     }
 
     public function test_identity_sends_otp_and_submission_creates_control_number(): void
@@ -35,6 +35,10 @@ class StudentLoaRequestFlowTest extends TestCase
 
         // ── Step 1: submit email → redirects to verify/{token} ───────────────
         $response = $this->post('/loa/request', [
+            'student_id' => '2021-0001',
+            'first_name' => 'Juan',
+            'middle_name' => 'Dela',
+            'last_name' => 'Cruz',
             'email' => 'juan@evsu.edu.ph',
         ]);
 
@@ -88,22 +92,32 @@ class StudentLoaRequestFlowTest extends TestCase
 
         // ── Step 6: duplicate email blocked after OTP verified ────────────────
         $this->post('/loa/request', [
+            'student_id' => '2021-0001',
+            'first_name' => 'Juan',
+            'last_name' => 'Cruz',
             'email' => 'juan@evsu.edu.ph',
         ])->assertSessionHasErrors(['email']);
 
         // ── Step 7: submit the form ───────────────────────────────────────────
         $this->post(route('student.form.store', $token), [
             'student_id'          => '2021-0001',
-            'full_name'           => 'Juan Dela Cruz',
+            'first_name'          => 'Juan',
+            'middle_name'         => 'Dela',
+            'last_name'           => 'Cruz',
             'department_id'       => $department->id,
             'program_id'          => $program->id,
             'year_level'          => 'BSIT-1st',
+            'academic_year'       => '2026-2027',
+            'semester'            => 'first',
             'start_date'          => '2026-10-01',
             'return_date'         => '2027-03-01',
             'reason'              => 'Medical treatment requiring extended recovery.',
-            'parent_full_name'    => 'Maria Dela Cruz',
-            'parent_relationship' => 'Mother',
+            'parent_first_name'   => 'Maria',
+            'parent_middle_name'  => '',
+            'parent_last_name'    => 'Dela Cruz',
+            'parent_relationship' => 'mother',
             'parent_phone'        => '917-123-4567',
+            'attachment_categories' => ['medical', 'valid_id'],
             'attachments'         => [
                 UploadedFile::fake()->create('medical.pdf', 120, 'application/pdf'),
                 UploadedFile::fake()->image('id.jpg'),
@@ -112,10 +126,18 @@ class StudentLoaRequestFlowTest extends TestCase
 
         $this->assertDatabaseHas('loa_requests', [
             'student_id'             => '2021-0001',
+            'first_name'             => 'Juan',
+            'last_name'              => 'Cruz',
+            'full_name'              => 'Juan Dela Cruz',
+            'parent_first_name'      => 'Maria',
+            'parent_last_name'       => 'Dela Cruz',
+            'parent_full_name'       => 'Maria Dela Cruz',
             'email'                  => 'juan@evsu.edu.ph',
             'status'                 => 'submitted',
             'department_id'          => $department->id,
             'program_id'             => $program->id,
+            'academic_year'          => '2026-2027',
+            'semester'               => 'first',
             'dept_head_status'       => 'pending',
             'saso_status'            => null,
             'campus_director_status' => null,

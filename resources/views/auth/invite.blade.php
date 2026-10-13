@@ -22,14 +22,27 @@
         <form method="POST" action="{{ route('invitation.store', $token) }}" class="space-y-4">
             @csrf
 
-            {{-- Name — pre-filled from admin, still editable --}}
-            <div>
-                <label for="name" class="block text-sm font-medium text-maroon-900">Full name</label>
-                <input id="name" name="name" type="text" required
-                       value="{{ old('name', $user->name) }}"
-                       placeholder="Lastname, Firstname, Middlename"
-                       class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
-                @error('name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-maroon-900">First name</label>
+                    <input id="first_name" name="first_name" type="text" required
+                           value="{{ old('first_name', $user->first_name) }}"
+                           class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    @error('first_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="middle_name" class="block text-sm font-medium text-maroon-900">Middle name</label>
+                    <input id="middle_name" name="middle_name" type="text"
+                           value="{{ old('middle_name', $user->middle_name) }}"
+                           class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                </div>
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-maroon-900">Last name</label>
+                    <input id="last_name" name="last_name" type="text" required
+                           value="{{ old('last_name', $user->last_name) }}"
+                           class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    @error('last_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
+                </div>
             </div>
 
             <x-password-field

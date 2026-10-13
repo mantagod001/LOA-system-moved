@@ -8,6 +8,7 @@ enum UserRole: string
     case DepartmentHead = 'department_head';
     case SasoOfficer = 'saso_officer';
     case CampusDirector = 'campus_director';
+    case President = 'president';
     case Registrar = 'registrar';
     case Guidance = 'guidance';
 
@@ -18,6 +19,7 @@ enum UserRole: string
             self::DepartmentHead => 'Department Head',
             self::SasoOfficer => 'SASO Officer',
             self::CampusDirector => 'Campus Director',
+            self::President => 'President',
             self::Registrar => 'Registrar',
             self::Guidance => 'Guidance Office',
         };
