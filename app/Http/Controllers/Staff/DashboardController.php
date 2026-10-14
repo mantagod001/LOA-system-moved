@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $filterStatus = $request->string('status')->toString() ?: null;
         $filterSearch = trim($request->string('search')->toString()) ?: null;
 
-        $validStatuses = ['submitted', 'approved', 'rejected', 'discontinued', 'draft', 'overdue'];
+        $validStatuses = ['submitted', 'approved', 'rejected', 'discontinued', 'draft', 'overdue', 'did_not_enroll'];
         if ($filterStatus && ! in_array($filterStatus, $validStatuses, true)) {
             $filterStatus = null;
         }

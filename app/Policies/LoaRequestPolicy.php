@@ -13,7 +13,7 @@ class LoaRequestPolicy
         // Administrator gets full bypass for all abilities EXCEPT approve/reject/discontinue —
         // they are not part of the approval workflow and cannot act outside valid LOA statuses.
         if ($user->role->is(UserRole::Administrator)
-            && ! in_array($ability, ['approve', 'reject', 'discontinue', 'markReturned'], true)) {
+            && ! in_array($ability, ['approve', 'reject', 'discontinue', 'markReturned', 'markDidNotEnroll'], true)) {
             return true;
         }
 
@@ -83,5 +83,10 @@ class LoaRequestPolicy
     public function markReturned(User $user, LoaRequest $loaRequest): bool
     {
         return $loaRequest->canBeMarkedReturnedBy($user);
+    }
+
+    public function markDidNotEnroll(User $user, LoaRequest $loaRequest): bool
+    {
+        return $loaRequest->canBeMarkedDidNotEnrollBy($user);
     }
 }

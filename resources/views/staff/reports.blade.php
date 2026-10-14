@@ -200,6 +200,7 @@
                         'rejected'     => ['label' => 'Rejected',       'color' => 'bg-red-500'],
                         'discontinued' => ['label' => 'Discontinued',   'color' => 'bg-gray-400'],
                         'draft'        => ['label' => 'Draft',          'color' => 'bg-yellow-400'],
+                        'did_not_enroll' => ['label' => 'Did not enroll', 'color' => 'bg-orange-500'],
                     ];
                 @endphp
                 <div class="space-y-3">

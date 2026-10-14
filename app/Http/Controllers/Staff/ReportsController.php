@@ -102,6 +102,7 @@ class ReportsController extends Controller
             'rejected'     => (clone $baseYear)->where('status', 'rejected')->count(),
             'discontinued' => (clone $baseYear)->where('status', 'discontinued')->count(),
             'draft'        => (clone $baseYear)->where('status', 'draft')->count(),
+            'did_not_enroll' => (clone $baseYear)->whereNotNull('did_not_enroll_at')->count(),
         ];
 
         // ── Top 5 programs by volume (respects status filter) ─────────────────

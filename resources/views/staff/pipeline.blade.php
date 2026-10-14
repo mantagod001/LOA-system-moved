@@ -60,6 +60,7 @@
                 <option value="rejected"     {{ $filterStatus === 'rejected'     ? 'selected' : '' }}>Rejected</option>
                 <option value="discontinued" {{ $filterStatus === 'discontinued' ? 'selected' : '' }}>Discontinued</option>
                 <option value="overdue"      {{ $filterStatus === 'overdue'      ? 'selected' : '' }}>Overdue return</option>
+                <option value="did_not_enroll" {{ $filterStatus === 'did_not_enroll' ? 'selected' : '' }}>Did not enroll</option>
                 <option value="draft"        {{ $filterStatus === 'draft'        ? 'selected' : '' }}>Draft</option>
             </select>
         </div>
@@ -93,7 +94,7 @@
                     @php
                         $statusLabels = [
                             'submitted' => 'Under Review', 'approved' => 'Approved',
-                            'rejected' => 'Rejected', 'discontinued' => 'Discontinued', 'overdue' => 'Overdue return', 'draft' => 'Draft',
+                            'rejected' => 'Rejected', 'discontinued' => 'Discontinued', 'overdue' => 'Overdue return', 'did_not_enroll' => 'Did not enroll', 'draft' => 'Draft',
                         ];
                     @endphp
                     <span class="rounded-full bg-maroon-100 px-3 py-1 text-xs font-semibold text-maroon-800">
@@ -159,6 +160,12 @@
                                     <div class="mt-0.5">
                                         <span class="rounded-full border border-red-500 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-800">
                                             Overdue return
+                                        </span>
+                                    </div>
+                                @elseif ($loa->didNotEnroll())
+                                    <div class="mt-0.5">
+                                        <span class="rounded-full border border-orange-400 bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-900">
+                                            Did not enroll
                                         </span>
                                     </div>
                                 @elseif ($loa->returned_at)

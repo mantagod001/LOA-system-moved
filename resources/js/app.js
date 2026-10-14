@@ -156,6 +156,10 @@ if (phoneInput) {
         return d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6);
     };
 
+    if (phoneInput.value) {
+        phoneInput.value = fmt(extractDigits(phoneInput.value));
+    }
+
     phoneInput.addEventListener('input', () => {
         const digits    = extractDigits(phoneInput.value);
         const formatted = fmt(digits);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AcademicSemester;
 use App\Enums\ApprovalStageStatus;
 use App\Enums\UserRole;
 use App\Models\Department;
@@ -113,6 +114,81 @@ class LeaveOverdueTest extends TestCase
             'student_id' => $loa->student_id,
         ])->assertOk()
             ->assertSeeText('Expected return date has passed');
+    }
+
+    public function test_staff_can_record_did_not_enroll_for_return_semester(): void
+    {
+        $loa = $this->createApprovedLeave(now()->subDays(3)->toDateString());
+        $saso = User::factory()->create(['role' => UserRole::SasoOfficer]);
+        $term = $loa->expectedReturnTerm();
+
+        $this->actingAs($saso)
+            ->get(route('staff.loa.show', $loa))
+            ->assertOk()
+            ->assertSeeText('Did not enroll this semester');
+
+        $this->actingAs($saso)
+            ->post(route('staff.loa.did-not-enroll', $loa), [
+                'academic_year' => $term['year'],
+                'semester' => $term['semester']->value,
+            ])
+            ->assertRedirect(route('staff.loa.show', $loa));
+
+        $fresh = $loa->fresh();
+        $this->assertTrue($fresh->didNotEnroll());
+        $this->assertFalse($fresh->isOverdue());
+        $this->assertSame($saso->id, $fresh->did_not_enroll_by);
+        $this->assertSame($term['year'], $fresh->did_not_enroll_academic_year);
+        $this->assertSame($term['semester'], $fresh->did_not_enroll_semester);
+
+        $this->actingAs($saso)
+            ->get(route('staff.loa.show', $loa))
+            ->assertOk()
+            ->assertSeeText('Did not enroll')
+            ->assertSeeText($fresh->didNotEnrollTermLabel());
+
+        $this->actingAs($saso)
+            ->get(route('staff.dashboard', ['status' => 'did_not_enroll']))
+            ->assertOk()
+            ->assertSeeText($loa->control_number);
+
+        $this->actingAs($saso)
+            ->get(route('staff.dashboard', ['status' => 'overdue']))
+            ->assertOk()
+            ->assertDontSeeText($loa->control_number, false);
+
+        $this->post(route('student.status'), [
+            'control_number' => $loa->control_number,
+            'student_id' => $loa->student_id,
+        ])->assertOk()
+            ->assertSeeText('Did not enroll')
+            ->assertSeeText($fresh->didNotEnrollTermLabel());
+    }
+
+    public function test_cannot_record_did_not_enroll_before_return_date(): void
+    {
+        $loa = $this->createApprovedLeave(now()->addMonth()->toDateString());
+        $saso = User::factory()->create(['role' => UserRole::SasoOfficer]);
+
+        $this->actingAs($saso)
+            ->post(route('staff.loa.did-not-enroll', $loa), [
+                'academic_year' => '2026-2027',
+                'semester' => AcademicSemester::First->value,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_admin_cannot_record_did_not_enroll(): void
+    {
+        $loa = $this->createApprovedLeave(now()->subDay()->toDateString());
+        $admin = User::factory()->create(['role' => UserRole::Administrator]);
+
+        $this->actingAs($admin)
+            ->post(route('staff.loa.did-not-enroll', $loa), [
+                'academic_year' => '2026-2027',
+                'semester' => AcademicSemester::First->value,
+            ])
+            ->assertForbidden();
     }
 
     private function createApprovedLeave(string $returnDate): LoaRequest

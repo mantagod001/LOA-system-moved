@@ -192,12 +192,7 @@
                 <div class="mt-1 flex rounded-xl border border-maroon-900/15 bg-cream-50 focus-within:ring-2 focus-within:ring-maroon-700 overflow-hidden">
                     <span class="flex items-center bg-maroon-900/5 border-r border-maroon-900/15 px-3 text-sm font-medium text-maroon-700 select-none">+63</span>
                     <input id="parent_phone" name="parent_phone" type="tel" required
-                           value="{{ old('parent_phone', (function() use ($loa) {
-                               $d = substr((string) $loa->parent_phone, 3); // strip +63 → 10 digits
-                               return strlen($d) === 10
-                                   ? substr($d,0,3).'-'.substr($d,3,3).'-'.substr($d,6)
-                                   : $d;
-                           })()) }}"
+                           value="{{ old('parent_phone', $loa->parentPhoneForInput()) }}"
                            class="flex-1 bg-cream-50 px-3 py-3 text-base outline-none"
                            placeholder="917-123-4567"
                            maxlength="12"

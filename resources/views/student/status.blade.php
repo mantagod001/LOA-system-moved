@@ -78,6 +78,8 @@
                     </div>
                     @if ($loa->isOverdue())
                         <span class="rounded-full border border-red-600 bg-red-600 px-3 py-1 text-sm font-semibold text-white">Overdue return</span>
+                    @elseif ($loa->didNotEnroll())
+                        <span class="rounded-full border border-orange-500 bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-900">Did not enroll</span>
                     @elseif ($loa->returned_at)
                         <span class="rounded-full border border-emerald-600 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">Returned</span>
                     @elseif ($stageName === 'done' || $loa->status === 'approved')
@@ -182,8 +184,17 @@
                     <div class="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
                         <p class="text-sm font-semibold text-red-800">Expected return date has passed</p>
                         <p class="text-xs text-red-800/80 mt-1">
-                            You were expected back on {{ $loa->return_date?->format('F j, Y') }}.
+                            You were expected back on {{ $loa->return_date?->format('F j, Y') }}
+                            ({{ $loa->expectedReturnTermLabel() }}).
                             This is not an enrollment record. Contact SASO or the Registrar if you have returned or need an extension.
+                        </p>
+                    </div>
+                @elseif ($loa->didNotEnroll())
+                    <div class="mt-4 rounded-lg bg-orange-50 border border-orange-200 px-4 py-3">
+                        <p class="text-sm font-semibold text-orange-950">Did not enroll</p>
+                        <p class="text-xs text-orange-900/80 mt-1">
+                            Campus recorded that you did not enroll for {{ $loa->didNotEnrollTermLabel() }}.
+                            This is a LeaveFlow note, not an automatic enrollment check. Contact SASO or the Registrar if this is wrong.
                         </p>
                     </div>
                 @elseif ($loa->returned_at)

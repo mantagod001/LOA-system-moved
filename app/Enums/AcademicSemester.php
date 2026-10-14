@@ -44,4 +44,29 @@ enum AcademicSemester: string
 
         return ((int) $matches[2]) === ((int) $matches[1] + 1);
     }
+
+    /**
+     * Best-effort school year + semester from a calendar date (return date).
+     * Staff can override this when recording that a student did not enroll.
+     *
+     * @return array{year: string, semester: self}
+     */
+    public static function guessFromDate(\DateTimeInterface $date): array
+    {
+        $parsed = \Carbon\Carbon::parse($date);
+        $month = (int) $parsed->month;
+        $year = (int) $parsed->year;
+
+        if ($month >= 6) {
+            return [
+                'year' => $year.'-'.($year + 1),
+                'semester' => $month <= 10 ? self::First : self::Second,
+            ];
+        }
+
+        return [
+            'year' => ($year - 1).'-'.$year,
+            'semester' => $month <= 3 ? self::Second : self::Midyear,
+        ];
+    }
 }

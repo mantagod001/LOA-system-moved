@@ -45,6 +45,7 @@
                 <option value="rejected"     {{ $filterStatus === 'rejected'     ? 'selected' : '' }}>Rejected</option>
                 <option value="discontinued" {{ $filterStatus === 'discontinued' ? 'selected' : '' }}>Discontinued</option>
                 <option value="overdue"      {{ $filterStatus === 'overdue'      ? 'selected' : '' }}>Overdue return</option>
+                <option value="did_not_enroll" {{ $filterStatus === 'did_not_enroll' ? 'selected' : '' }}>Did not enroll</option>
                 <option value="draft"        {{ $filterStatus === 'draft'        ? 'selected' : '' }}>Draft</option>
             </select>
         </div>
@@ -69,7 +70,7 @@
                     <span class="rounded-full bg-maroon-100 px-3 py-1 text-xs font-semibold text-maroon-800">"{{ $filterSearch }}"</span>
                 @endif
                 @if ($filterStatus)
-                    @php $statusLabels = ['submitted'=>'Under Review','approved'=>'Approved','rejected'=>'Rejected','discontinued'=>'Discontinued','overdue'=>'Overdue return']; @endphp
+                    @php $statusLabels = ['submitted'=>'Under Review','approved'=>'Approved','rejected'=>'Rejected','discontinued'=>'Discontinued','overdue'=>'Overdue return','did_not_enroll'=>'Did not enroll']; @endphp
                     <span class="rounded-full bg-maroon-100 px-3 py-1 text-xs font-semibold text-maroon-800">{{ $statusLabels[$filterStatus] ?? ucfirst($filterStatus) }}</span>
                 @endif
             </div>
@@ -161,6 +162,8 @@
                                     <span class="{{ $loa->statusBadgeClasses() }}">{{ $loa->statusLabel() }}</span>
                                     @if ($loa->isOverdue())
                                         <span class="border border-red-600 text-white bg-red-600 rounded-full px-3 py-1 text-xs font-medium">Overdue return</span>
+                                    @elseif ($loa->didNotEnroll())
+                                        <span class="border border-orange-600 text-orange-900 bg-orange-50 rounded-full px-3 py-1 text-xs font-medium">Did not enroll</span>
                                     @elseif ($loa->returned_at)
                                         <span class="border border-emerald-600 text-emerald-800 bg-emerald-50 rounded-full px-3 py-1 text-xs font-medium">Returned</span>
                                     @endif

@@ -10,8 +10,21 @@
             <p class="text-sm font-semibold text-red-800">Expected return date has passed</p>
             <p class="mt-1 text-sm text-red-800/80">
                 This student was expected back on {{ $loa->return_date?->format('F j, Y') }}
-                ({{ $loa->daysOverdue() }} day{{ $loa->daysOverdue() === 1 ? '' : 's' }} overdue).
-                LeaveFlow does not see enrollment — mark returned only if your office has confirmed they came back.
+                ({{ $loa->daysOverdue() }} day{{ $loa->daysOverdue() === 1 ? '' : 's' }} overdue),
+                around <strong>{{ $loa->expectedReturnTermLabel() }}</strong>.
+                LeaveFlow does not see enrollment. Mark <strong>returned</strong> if they came back, or <strong>did not enroll</strong> if your office confirmed they did not enroll that term.
+            </p>
+        </div>
+    @elseif ($loa->didNotEnroll())
+        <div class="mb-4 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4">
+            <p class="text-sm font-semibold text-orange-950">Did not enroll</p>
+            <p class="mt-1 text-sm text-orange-900/80">
+                Recorded as not enrolled for <strong>{{ $loa->didNotEnrollTermLabel() }}</strong>
+                on {{ $loa->did_not_enroll_at?->format('F j, Y g:i A') }}
+                @if ($loa->didNotEnrollByActor)
+                    by {{ $loa->didNotEnrollByActor->name }}
+                @endif
+                . This is a LeaveFlow note after your office checked enrollment — not an automatic SIS lookup.
             </p>
         </div>
     @elseif ($loa->returned_at)
@@ -52,6 +65,8 @@
         @endif
         @if ($loa->isOverdue())
             <span class="rounded-full border border-red-600 bg-red-600 px-3 py-1 text-xs font-medium text-white">Overdue return</span>
+        @elseif ($loa->didNotEnroll())
+            <span class="rounded-full border border-orange-500 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-900">Did not enroll</span>
         @elseif ($loa->returned_at)
             <span class="rounded-full border border-emerald-600 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Returned</span>
         @endif
@@ -369,6 +384,16 @@
                 </form>
             @endcan
 
+            @can('markDidNotEnroll', $loa)
+                <button type="button"
+                        data-did-not-enroll-trigger
+                        data-control="{{ $loa->control_number }}"
+                        data-action="{{ route('staff.loa.did-not-enroll', $loa) }}"
+                        class="block w-full rounded-xl border border-orange-400 bg-white px-4 py-2.5 text-center text-sm font-semibold text-orange-900 shadow-sm hover:bg-orange-50">
+                    Did not enroll this semester
+                </button>
+            @endcan
+
             {{-- Discontinue button (shown separately — available even after approval) --}}
             @can('discontinue', $loa)
                 <button type="button"
@@ -473,6 +498,59 @@
         </div>
     </div>
 
+    {{-- Did not enroll modal --}}
+    <div id="did-not-enroll-modal"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-maroon-950/60 backdrop-blur-sm p-4"
+         role="dialog" aria-modal="true" aria-labelledby="did-not-enroll-modal-title">
+        <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+            <div class="border-b border-maroon-900/10 px-6 py-4">
+                <p class="text-xs font-semibold uppercase tracking-wider text-orange-800">Did not enroll</p>
+                <h3 id="did-not-enroll-modal-title" class="mt-1 text-lg font-bold text-maroon-950">
+                    Record <span id="did-not-enroll-control-display" class="font-mono"></span>
+                </h3>
+            </div>
+            <form id="did-not-enroll-form" method="POST">
+                @csrf
+                <div class="px-6 py-5 space-y-4">
+                    <p class="text-sm text-maroon-900/70">
+                        Use this after your office confirms the student did <strong>not enroll</strong> in the semester they were due back.
+                        Suggested from the return date: <strong>{{ $loa->expectedReturnTermLabel() }}</strong>. This is not an automatic SIS check.
+                    </p>
+                    <div>
+                        <label for="did-not-enroll-year" class="block text-sm font-medium text-maroon-900 mb-1">School year</label>
+                        <select id="did-not-enroll-year" name="academic_year" required
+                                class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-sm outline-none ring-orange-600 focus:ring-2">
+                            <option value="">Select school year</option>
+                            @foreach ($academicYears as $year)
+                                <option value="{{ $year }}" @selected(($expectedReturn['year'] ?? null) === $year)>{{ $year }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="did-not-enroll-semester" class="block text-sm font-medium text-maroon-900 mb-1">Semester</label>
+                        <select id="did-not-enroll-semester" name="semester" required
+                                class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-sm outline-none ring-orange-600 focus:ring-2">
+                            <option value="">Select semester</option>
+                            @foreach ($semesters as $semester)
+                                <option value="{{ $semester->value }}" @selected(($expectedReturn['semester'] ?? null)?->value === $semester->value)>{{ $semester->label() }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 border-t border-maroon-900/10 px-6 py-4">
+                    <button type="button" id="did-not-enroll-cancel"
+                            class="rounded-lg border border-maroon-900/20 bg-white px-4 py-2 text-sm font-semibold text-maroon-700 hover:bg-maroon-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="rounded-lg bg-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600">
+                        Confirm did not enroll
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 @endsection
 
 @push('scripts')
@@ -530,7 +608,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dCancelBtn?.addEventListener('click', dClose);
     dModal?.addEventListener('click', e => { if (e.target === dModal) dClose(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); dClose(); } });
+
+    const eModal = document.getElementById('did-not-enroll-modal');
+    const eForm = document.getElementById('did-not-enroll-form');
+    const eControlLabel = document.getElementById('did-not-enroll-control-display');
+    const eCancelBtn = document.getElementById('did-not-enroll-cancel');
+
+    const eOpen = (control, action) => {
+        if (eControlLabel) eControlLabel.textContent = control;
+        if (eForm) eForm.action = action;
+        eModal?.classList.remove('hidden');
+        eModal?.classList.add('flex');
+    };
+    const eClose = () => {
+        eModal?.classList.add('hidden');
+        eModal?.classList.remove('flex');
+    };
+
+    document.querySelectorAll('[data-did-not-enroll-trigger]').forEach(btn => {
+        btn.addEventListener('click', () => eOpen(btn.dataset.control, btn.dataset.action));
+    });
+    eCancelBtn?.addEventListener('click', eClose);
+    eModal?.addEventListener('click', e => { if (e.target === eModal) eClose(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); dClose(); eClose(); } });
 });
 </script>
 @endpush

@@ -125,7 +125,8 @@ class LeaveExtensionTest extends TestCase
             ->assertSeeText('2021-0500')
             ->assertSee('name="student_id"', false)
             ->assertDontSee('id="first_name"', false)
-            ->assertDontSee('data-department-filter', false);
+            ->assertDontSee('data-department-filter', false)
+            ->assertSee('value="917-123-4567"', false);
 
         $this->assertDatabaseHas('loa_requests', [
             'loa_access_token_id' => $token->id,

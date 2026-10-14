@@ -65,6 +65,10 @@ class LoaRequest extends Model
         'discontinuation_reason',
         'returned_at',
         'returned_by',
+        'did_not_enroll_at',
+        'did_not_enroll_by',
+        'did_not_enroll_academic_year',
+        'did_not_enroll_semester',
         'resubmit_token_hash',
         'resubmit_token_expires_at',
         'resubmit_count',
@@ -84,6 +88,8 @@ class LoaRequest extends Model
             'rejected_at'             => 'datetime',
             'discontinued_at'         => 'datetime',
             'returned_at'             => 'datetime',
+            'did_not_enroll_at'       => 'datetime',
+            'did_not_enroll_semester' => AcademicSemester::class,
             'resubmit_token_expires_at' => 'datetime',
             'president_status'        => ApprovalStageStatus::class,
             'dept_head_status'        => ApprovalStageStatus::class,
@@ -125,6 +131,66 @@ class LoaRequest extends Model
         }
 
         return trim(($semester ?? '').' '.($year ?? '')) ?: '—';
+    }
+
+    /** @return array{year: string, semester: AcademicSemester}|null */
+    public function expectedReturnTerm(): ?array
+    {
+        if (! $this->return_date) {
+            return null;
+        }
+
+        return AcademicSemester::guessFromDate($this->return_date);
+    }
+
+    public function expectedReturnTermLabel(): string
+    {
+        $term = $this->expectedReturnTerm();
+        if (! $term) {
+            return '—';
+        }
+
+        return $term['semester']->label().' '.$term['year'];
+    }
+
+    public function didNotEnrollTermLabel(): string
+    {
+        $semester = $this->did_not_enroll_semester instanceof AcademicSemester
+            ? $this->did_not_enroll_semester->label()
+            : null;
+        $year = $this->did_not_enroll_academic_year;
+
+        if (! $semester && ! $year) {
+            return '—';
+        }
+
+        return trim(($semester ?? '').' '.($year ?? '')) ?: '—';
+    }
+
+    public function didNotEnroll(): bool
+    {
+        return $this->did_not_enroll_at !== null;
+    }
+
+    /** Display value for the +63 phone field: 917-123-4567 */
+    public function parentPhoneForInput(): string
+    {
+        $digits = preg_replace('/\D/', '', (string) $this->parent_phone) ?? '';
+
+        if (str_starts_with($digits, '63') && strlen($digits) > 10) {
+            $digits = substr($digits, 2);
+        }
+        if (str_starts_with($digits, '0')) {
+            $digits = substr($digits, 1);
+        }
+
+        $digits = substr($digits, 0, 10);
+
+        if (strlen($digits) !== 10) {
+            return $digits;
+        }
+
+        return substr($digits, 0, 3).'-'.substr($digits, 3, 3).'-'.substr($digits, 6);
     }
 
     public function accessToken(): BelongsTo
@@ -197,6 +263,11 @@ class LoaRequest extends Model
         return $this->belongsTo(User::class, 'returned_by');
     }
 
+    public function didNotEnrollByActor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'did_not_enroll_by');
+    }
+
     public function rejectionHistory(): HasMany
     {
         return $this->hasMany(LoaRejectionHistory::class)->orderBy('rejected_at');
@@ -237,11 +308,17 @@ class LoaRequest extends Model
         return $query
             ->where('status', 'approved')
             ->whereNull('returned_at')
+            ->whereNull('did_not_enroll_at')
             ->whereNotNull('return_date')
             ->whereDate('return_date', '<', now()->toDateString())
             ->whereDoesntHave('extensions', function ($extensions) {
                 $extensions->where('status', 'approved');
             });
+    }
+
+    public function scopeDidNotEnroll(Builder $query): Builder
+    {
+        return $query->whereNotNull('did_not_enroll_at');
     }
 
     public function scopeApplyStatusFilter(Builder $query, ?string $status): Builder
@@ -254,12 +331,16 @@ class LoaRequest extends Model
             return $query->overdue();
         }
 
+        if ($status === 'did_not_enroll') {
+            return $query->didNotEnroll();
+        }
+
         return $query->where('status', $status);
     }
 
     public function isOverdue(): bool
     {
-        if ($this->status !== 'approved' || $this->returned_at || ! $this->return_date) {
+        if ($this->status !== 'approved' || $this->returned_at || $this->did_not_enroll_at || ! $this->return_date) {
             return false;
         }
 
@@ -664,6 +745,46 @@ class LoaRequest extends Model
         $this->update([
             'returned_at' => now(),
             'returned_by' => $user->id,
+            'did_not_enroll_at' => null,
+            'did_not_enroll_by' => null,
+            'did_not_enroll_academic_year' => null,
+            'did_not_enroll_semester' => null,
+        ]);
+    }
+
+    public function canBeMarkedDidNotEnrollBy(User $user): bool
+    {
+        if ($this->status !== 'approved' || $this->returned_at || $this->did_not_enroll_at || ! $this->return_date) {
+            return false;
+        }
+
+        if ($this->return_date->toDateString() >= now()->toDateString()) {
+            return false;
+        }
+
+        if ($this->extensions()->where('status', 'approved')->exists()) {
+            return false;
+        }
+
+        return match ($user->role) {
+            UserRole::SasoOfficer,
+            UserRole::CampusDirector,
+            UserRole::Registrar,
+            UserRole::Guidance => true,
+            UserRole::President => $this->isExtension(),
+            UserRole::DepartmentHead => $user->department_id
+                && (int) $user->department_id === (int) $this->department_id,
+            default => false,
+        };
+    }
+
+    public function markDidNotEnroll(User $user, string $academicYear, AcademicSemester $semester): void
+    {
+        $this->update([
+            'did_not_enroll_at' => now(),
+            'did_not_enroll_by' => $user->id,
+            'did_not_enroll_academic_year' => $academicYear,
+            'did_not_enroll_semester' => $semester,
         ]);
     }
 

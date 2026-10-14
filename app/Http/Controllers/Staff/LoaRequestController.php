@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Enums\AcademicSemester;
 use App\Models\LoaAttachment;
 use App\Models\LoaRequest;
 use App\Services\LoaPdfGenerator;
@@ -28,7 +29,7 @@ class LoaRequestController extends Controller
         $filterDept   = $request->integer('department_id') ?: null;
         $filterSearch = trim($request->string('search')->toString()) ?: null;
 
-        $validStatuses = ['submitted', 'approved', 'rejected', 'discontinued', 'draft', 'overdue'];
+        $validStatuses = ['submitted', 'approved', 'rejected', 'discontinued', 'draft', 'overdue', 'did_not_enroll'];
         if ($filterStatus && ! in_array($filterStatus, $validStatuses, true)) {
             $filterStatus = null;
         }
@@ -95,6 +96,7 @@ class LoaRequestController extends Controller
             'rejectedByActor',
             'discontinuedByActor',
             'returnedByActor',
+            'didNotEnrollByActor',
             'extensions',
             'rejectionHistory.rejectedByActor',
         ]);
@@ -105,9 +107,16 @@ class LoaRequestController extends Controller
             ? $referer
             : route('staff.pipeline');
 
+        $expectedReturn = $loaRequest->expectedReturnTerm();
+
         return view('staff.loa-show', [
             'loa'     => $loaRequest,
             'backUrl' => $backUrl,
+            'academicYears' => AcademicSemester::yearOptions(
+                $loaRequest->did_not_enroll_academic_year ?? $expectedReturn['year'] ?? null
+            ),
+            'semesters' => AcademicSemester::cases(),
+            'expectedReturn' => $expectedReturn,
         ]);
     }
 
@@ -180,5 +189,29 @@ class LoaRequestController extends Controller
         return redirect()
             ->route('staff.loa.show', $loaRequest)
             ->with('status', "LOA {$loaRequest->control_number} marked as returned. This is a LeaveFlow record, not an enrollment check.");
+    }
+
+    public function markDidNotEnroll(Request $request, LoaRequest $loaRequest): RedirectResponse
+    {
+        $this->authorize('markDidNotEnroll', $loaRequest);
+
+        $validated = $request->validate([
+            'academic_year' => ['required', 'string', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! AcademicSemester::isValidYear(is_string($value) ? $value : null)) {
+                    $fail('Choose a valid school year, e.g. 2026-2027.');
+                }
+            }],
+            'semester' => ['required', \Illuminate\Validation\Rule::enum(AcademicSemester::class)],
+        ]);
+
+        $loaRequest->markDidNotEnroll(
+            $request->user(),
+            $validated['academic_year'],
+            AcademicSemester::from($validated['semester']),
+        );
+
+        return redirect()
+            ->route('staff.loa.show', $loaRequest)
+            ->with('status', "LOA {$loaRequest->control_number} recorded as did not enroll for {$loaRequest->didNotEnrollTermLabel()}. This is a LeaveFlow note, not an SIS record.");
     }
 }

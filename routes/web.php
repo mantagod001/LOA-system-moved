@@ -75,6 +75,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/staff/loa/{loaRequest}/reject',                [LoaRequestController::class, 'reject'])->name('staff.loa.reject');
         Route::post('/staff/loa/{loaRequest}/discontinue',           [LoaRequestController::class, 'discontinue'])->name('staff.loa.discontinue');
         Route::post('/staff/loa/{loaRequest}/returned',              [LoaRequestController::class, 'markReturned'])->name('staff.loa.returned');
+        Route::post('/staff/loa/{loaRequest}/did-not-enroll',        [LoaRequestController::class, 'markDidNotEnroll'])->name('staff.loa.did-not-enroll');
     });
 
     // Admin — user management (Administrator role only, enforced in controller)
