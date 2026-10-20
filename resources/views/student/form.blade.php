@@ -10,7 +10,7 @@
         @if ($isExtension)
             Academic details stay as on the approved leave. Pick a new return date (up to one extra year after the current end date). The President reviews this first.
         @else
-            Student number and name are filled from your request. You may correct them if needed. <strong>Leave may not exceed one year</strong> from the start date.
+            Fill in your student information and leave details below. <strong>Leave may not exceed one year</strong> from the start date.
         @endif
     </x-slot:lead>
 
@@ -55,26 +55,26 @@
                     inputmode="numeric"
                     placeholder="e.g. 2021-12345"
                     data-student-id-input
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('student_id') border-red-400 bg-red-50 @enderror">
                 @error('student_id') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
             <div class="grid gap-4 sm:grid-cols-3">
                 <div>
                     <label for="first_name" class="block text-sm font-medium text-maroon-900">First name</label>
                     <input id="first_name" name="first_name" required value="{{ old('first_name', $loa->first_name) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('first_name') border-red-400 bg-red-50 @enderror">
                     @error('first_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="middle_name" class="block text-sm font-medium text-maroon-900">Middle name <span class="font-normal text-maroon-800/50">(optional)</span></label>
                     <input id="middle_name" name="middle_name" value="{{ old('middle_name', $loa->middle_name) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('middle_name') border-red-400 bg-red-50 @enderror">
                     @error('middle_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="last_name" class="block text-sm font-medium text-maroon-900">Last name</label>
                     <input id="last_name" name="last_name" required value="{{ old('last_name', $loa->last_name) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('last_name') border-red-400 bg-red-50 @enderror">
                     @error('last_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -83,7 +83,7 @@
                 <div>
                     <label for="department_id" class="block text-sm font-medium text-maroon-900">Department</label>
                     <select id="department_id" name="department_id" required data-department-filter
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('department_id') border-red-400 bg-red-50 @enderror">
                         <option value="">Select department</option>
                         @foreach ($departments as $department)
                             <option value="{{ $department->id }}" @selected(old('department_id', $loa->department_id) == $department->id)>{{ $department->name }}</option>
@@ -94,7 +94,7 @@
                 <div>
                     <label for="program_id" class="block text-sm font-medium text-maroon-900">Program</label>
                     <select id="program_id" name="program_id" required data-program-select data-selected-program="{{ old('program_id', $loa->program_id) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('program_id') border-red-400 bg-red-50 @enderror">
                         <option value="">Select department first</option>
                     </select>
                     @error('program_id') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
@@ -102,7 +102,7 @@
                 <div>
                     <label for="year_level" class="block text-sm font-medium text-maroon-900">Year level</label>
                     <select id="year_level" name="year_level" required data-year-select
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('year_level') border-red-400 bg-red-50 @enderror">
                         <option value="">Select program first</option>
                     </select>
                     @error('year_level') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
@@ -130,7 +130,7 @@
                 <input id="start_date" name="start_date" type="date" required data-leave-start
                     value="{{ old('start_date', $loa->start_date?->format('Y-m-d')) }}"
                     @if ($isExtension) readonly @endif
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 {{ $isExtension ? 'text-maroon-900/70' : '' }}">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 {{ $isExtension ? 'text-maroon-900/70' : '' }} @error('start_date') border-red-400 bg-red-50 @enderror">
                 @error('start_date') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
             <div>
@@ -138,7 +138,7 @@
                 <input id="return_date" name="return_date" type="date" required data-leave-return
                     @if ($isExtension && $parentLoa?->return_date) data-leave-extension-from="{{ $parentLoa->return_date->format('Y-m-d') }}" @endif
                     value="{{ old('return_date', $loa->return_date?->format('Y-m-d')) }}"
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('return_date') border-red-400 bg-red-50 @enderror">
                 @error('return_date') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
         </div>
@@ -153,19 +153,19 @@
             <div>
                 <label for="parent_first_name" class="block text-sm font-medium text-maroon-900">Parent / guardian first name</label>
                 <input id="parent_first_name" name="parent_first_name" required value="{{ old('parent_first_name', $loa->parent_first_name) }}"
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('parent_first_name') border-red-400 bg-red-50 @enderror">
                 @error('parent_first_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label for="parent_middle_name" class="block text-sm font-medium text-maroon-900">Middle name <span class="font-normal text-maroon-800/50">(optional)</span></label>
                 <input id="parent_middle_name" name="parent_middle_name" value="{{ old('parent_middle_name', $loa->parent_middle_name) }}"
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('parent_middle_name') border-red-400 bg-red-50 @enderror">
                 @error('parent_middle_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label for="parent_last_name" class="block text-sm font-medium text-maroon-900">Last name</label>
                 <input id="parent_last_name" name="parent_last_name" required value="{{ old('parent_last_name', $loa->parent_last_name) }}"
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('parent_last_name') border-red-400 bg-red-50 @enderror">
                 @error('parent_last_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
         </div>
@@ -183,7 +183,7 @@
                     }
                 @endphp
                 <select id="parent_relationship" name="parent_relationship" required
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2">
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('parent_relationship') border-red-400 bg-red-50 @enderror">
                     <option value="">Select relationship</option>
                     @foreach ($relationships as $relationship)
                         <option value="{{ $relationship->value }}" @selected($selectedRelationship === $relationship->value)>{{ $relationship->label() }}</option>
@@ -193,11 +193,11 @@
             </div>
             <div>
                 <label for="parent_phone" class="block text-sm font-medium text-maroon-900">Active phone number</label>
-                <div class="mt-1 flex rounded-xl border border-maroon-900/15 bg-cream-50 focus-within:ring-2 focus-within:ring-maroon-700 overflow-hidden">
+                <div class="mt-1 flex rounded-xl border border-maroon-900/15 bg-cream-50 focus-within:ring-2 focus-within:ring-maroon-700 overflow-hidden @error('parent_phone') border-red-400 bg-red-50 @enderror">
                     <span class="flex items-center bg-maroon-900/5 border-r border-maroon-900/15 px-3 text-sm font-medium text-maroon-700 select-none">+63</span>
                     <input id="parent_phone" name="parent_phone" type="tel" required
                         value="{{ old('parent_phone', $loa->parentPhoneForInput()) }}"
-                        class="flex-1 bg-cream-50 px-3 py-3 text-base outline-none"
+                        class="flex-1 bg-cream-50 px-3 py-3 text-base outline-none @error('parent_phone') bg-red-50 @enderror"
                         placeholder="917-123-4567"
                         maxlength="12"
                         inputmode="numeric"

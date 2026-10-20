@@ -27,15 +27,6 @@
         <div>
             <p class="mb-2 text-sm font-semibold text-maroon-900">What happens next</p>
             <p class="text-sm leading-relaxed text-maroon-800/80">
-                Your updated application is now back in the approval queue. The Department Head will review your changes.
-                You will receive an email update when there is a decision.
-            </p>
-        </div>
-
-        {{-- What happens next --}}
-        <div>
-            <p class="mb-2 text-sm font-semibold text-maroon-900">What happens next</p>
-            <p class="text-sm leading-relaxed text-maroon-800/80">
                 Your updated application is now back in the approval queue starting from the stage that previously rejected it.
                 You will receive an email update when there is a decision.
             </p>

@@ -108,8 +108,22 @@ class LoaFormController extends Controller
         ];
 
         $validated = $request->validate(array_merge($identityRules, $editableRules), [
-            'parent_phone.regex' => 'Enter a valid 10-digit Philippine mobile number, e.g. 917-123-4567.',
-            'return_date.after' => 'The return date must be after the start date.',
+            'student_id.required'          => 'Please enter your student number.',
+            'student_id.regex'             => 'Student number must follow the format YYYY-NNNNN, e.g. 2021-12345.',
+            'first_name.required'          => 'Please enter your first name.',
+            'last_name.required'           => 'Please enter your last name.',
+            'department_id.required'       => 'Please select your department.',
+            'program_id.required'          => 'Please select your academic program.',
+            'year_level.required'          => 'Please select your year level.',
+            'start_date.required'          => 'Please select the expected start date.',
+            'return_date.required'         => 'Please select the expected return date.',
+            'return_date.after'            => 'The return date must be after the start date.',
+            'reason.required'              => 'Please provide a reason for your leave request.',
+            'parent_first_name.required'   => 'Please enter the first name of your parent or guardian.',
+            'parent_last_name.required'    => 'Please enter the last name of your parent or guardian.',
+            'parent_relationship.required' => 'Please select your relationship with your parent or guardian.',
+            'parent_phone.required'        => 'Please enter an active contact number for your parent or guardian.',
+            'parent_phone.regex'           => 'Enter a valid 10-digit Philippine mobile number, e.g. 917-123-4567.',
         ]);
 
         if ($loa->isExtension()) {
@@ -136,6 +150,24 @@ class LoaFormController extends Controller
             $validated['middle_name'] = $parent->middle_name ?: $loa->middle_name;
             $validated['last_name'] = $parent->last_name ?: $loa->last_name;
         } else {
+            $existing = LoaRequest::query()
+                ->where('student_id', $validated['student_id'])
+                ->where('id', '!=', $loa->id)
+                ->blockingNewRequest()
+                ->exists();
+
+            if ($existing) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['student_id' => 'This student number already has an active LOA request. Only one request is allowed at a time.']);
+            }
+
+            if (LoaRequest::latestApprovedFor($validated['student_id'], $loa->email)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['student_id' => 'This student number already has an approved leave. Use Extend leave if you need more time.']);
+            }
+
             $maxReturn = now()->parse($validated['start_date'])->addYear();
             if (now()->parse($validated['return_date'])->gt($maxReturn)) {
                 return back()
@@ -182,10 +214,13 @@ class LoaFormController extends Controller
             }
             $loa->save();
 
-            // Backfill student_id + full_name onto the token for duplicate checks
+            // Backfill student_id + split names onto the token for duplicate checks
             $access->update([
-                'student_id' => $validated['student_id'],
-                'full_name'  => LoaRequest::composeName(
+                'student_id'  => $validated['student_id'],
+                'first_name'  => $validated['first_name'],
+                'middle_name' => $validated['middle_name'] ?? null,
+                'last_name'   => $validated['last_name'],
+                'full_name'   => LoaRequest::composeName(
                     $validated['first_name'],
                     $validated['middle_name'] ?? null,
                     $validated['last_name'],

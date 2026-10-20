@@ -50,15 +50,15 @@
             <ol class="mt-6 space-y-5 text-base leading-relaxed text-maroon-800/80 lg:text-lg">
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">1</span>
-                    <span>For a new leave, enter your student number, name, and EVSU email. To extend, student number and that same email must both match the approved leave.</span>
+                    <span>For a new leave, enter your official EVSU email. To extend, student number and that same email must both match the approved leave.</span>
                 </li>
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">2</span>
-                    <span>We send a private form link to that email. Open it on this phone or any device.</span>
+                    <span>We send a 6-digit verification code to that email, followed by your private form link.</span>
                 </li>
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">3</span>
-                    <span>Complete EVSU-SASO-F-040. You receive a Control Number after you submit.</span>
+                    <span>Fill in your student information and leave details on EVSU-SASO-F-040. You receive a Control Number upon submission.</span>
                 </li>
                 <li class="flex gap-4">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">4</span>

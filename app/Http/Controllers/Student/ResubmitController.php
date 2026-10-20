@@ -81,8 +81,18 @@ class ResubmitController extends Controller
             'attachment_categories' => ['nullable', 'array', 'max:10'],
             'attachment_categories.*' => ['nullable', 'string', Rule::enum(AttachmentCategory::class)],
         ], [
-            'parent_phone.regex' => 'Enter a valid 10-digit Philippine mobile number, e.g. 917-123-4567.',
-            'return_date.after' => 'The return date must be after the start date.',
+            'department_id.required'       => 'Please select your department.',
+            'program_id.required'          => 'Please select your academic program.',
+            'year_level.required'          => 'Please select your year level.',
+            'start_date.required'          => 'Please select the expected start date.',
+            'return_date.required'         => 'Please select the expected return date.',
+            'return_date.after'            => 'The return date must be after the start date.',
+            'reason.required'              => 'Please provide a reason for your leave request.',
+            'parent_first_name.required'   => 'Please enter the first name of your parent or guardian.',
+            'parent_last_name.required'    => 'Please enter the last name of your parent or guardian.',
+            'parent_relationship.required' => 'Please select your relationship with your parent or guardian.',
+            'parent_phone.required'        => 'Please enter an active contact number for your parent or guardian.',
+            'parent_phone.regex'           => 'Enter a valid 10-digit Philippine mobile number, e.g. 917-123-4567.',
         ]);
 
         if ($loa->isExtension()) {

@@ -80,9 +80,6 @@ class LeaveExtensionTest extends TestCase
 
         $this->from(route('student.identity'))
             ->post(route('student.identity.store'), [
-                'student_id' => '2021-0100',
-                'first_name' => 'Ana',
-                'last_name' => 'Reyes',
                 'email' => 'ana@evsu.edu.ph',
             ])
             ->assertSessionHasErrors(['email']);

@@ -37,8 +37,8 @@
                                 Dear <strong>{{ $loa->full_name }}</strong>,
                             </p>
                             <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#2b070d;">
-                                Your Leave of Absence request has been <strong style="color:#047857;">approved</strong> by all required offices.
-                                All three approval stages have been completed.
+                                Your {{ $loa->isExtension() ? 'Leave of Absence extension' : 'Leave of Absence request' }} has been <strong style="color:#047857;">approved</strong> by all required offices.
+                                All approval stages have been completed.
                             </p>
                         </td>
                     </tr>

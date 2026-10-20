@@ -29,36 +29,26 @@ class IdentityController extends Controller
     {
         $isExtension = $request->routeIs('student.extend.store');
 
-        $rules = [
-            'student_id' => ['required', 'string', 'regex:/^\d{4}-\d{4,6}$/'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (! str_ends_with(strtolower((string) $value), '@evsu.edu.ph')) {
-                        $fail('Only official EVSU email addresses ending in @evsu.edu.ph are accepted.');
-                    }
-                },
-            ],
-        ];
-
-        if (! $isExtension) {
-            $rules['first_name'] = ['required', 'string', 'max:100'];
-            $rules['middle_name'] = ['nullable', 'string', 'max:100'];
-            $rules['last_name'] = ['required', 'string', 'max:100'];
-        }
-
-        $validated = $request->validate($rules, [
-            'student_id.regex' => 'Student ID must follow the format YYYY-NNNNN, e.g. 2021-12345.',
-            'email.required' => 'Please enter your EVSU email address.',
-            'email.email'    => 'Enter a valid email address.',
-        ]);
-
-        $email = strtolower($validated['email']);
-        $parent = null;
-
         if ($isExtension) {
+            $validated = $request->validate([
+                'student_id' => ['required', 'string', 'regex:/^\d{4}-\d{4,6}$/'],
+                'email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (! str_ends_with(strtolower((string) $value), '@evsu.edu.ph')) {
+                            $fail('Only official EVSU email addresses ending in @evsu.edu.ph are accepted.');
+                        }
+                    },
+                ],
+            ], [
+                'student_id.regex' => 'Student ID must follow the format YYYY-NNNNN, e.g. 2021-12345.',
+                'email.required' => 'Please enter your EVSU email address.',
+                'email.email'    => 'Enter a valid email address.',
+            ]);
+
+            $email = strtolower($validated['email']);
             $parent = LoaRequest::approvedMatchingIdAndEmail($validated['student_id'], $email);
             $block = $this->extensionBlockReason($validated['student_id'], $email, $parent);
             if ($block) {
@@ -67,27 +57,45 @@ class IdentityController extends Controller
                     'student_id' => $block,
                 ]);
             }
+
+            [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, [
+                'student_id'  => $parent?->student_id ?? $validated['student_id'],
+                'first_name'  => $parent?->first_name ?? '',
+                'middle_name' => $parent?->middle_name ?? null,
+                'last_name'   => $parent?->last_name ?? '',
+            ], $request->ip(), [
+                'purpose' => 'extension',
+                'parent_loa_id' => $parent?->id,
+            ]);
         } else {
-            $message = $this->newLeaveBlockReason($validated['student_id'], $email);
+            $validated = $request->validate([
+                'email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (! str_ends_with(strtolower((string) $value), '@evsu.edu.ph')) {
+                            $fail('Only official EVSU email addresses ending in @evsu.edu.ph are accepted.');
+                        }
+                    },
+                ],
+            ], [
+                'email.required' => 'Please enter your EVSU email address.',
+                'email.email'    => 'Enter a valid email address.',
+            ]);
+
+            $email = strtolower($validated['email']);
+            $message = $this->newLeaveEmailBlockReason($email);
             if ($message) {
                 return back()
                     ->withInput()
-                    ->withErrors([
-                        'email' => $message,
-                        'student_id' => $message,
-                    ]);
+                    ->withErrors(['email' => $message]);
             }
-        }
 
-        [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, [
-            'student_id'  => $parent?->student_id ?? $validated['student_id'],
-            'first_name'  => $parent?->first_name ?: ($validated['first_name'] ?? ''),
-            'middle_name' => $parent?->middle_name ?: ($validated['middle_name'] ?? null),
-            'last_name'   => $parent?->last_name ?: ($validated['last_name'] ?? ''),
-        ], $request->ip(), [
-            'purpose' => $isExtension ? 'extension' : 'leave',
-            'parent_loa_id' => $parent?->id,
-        ]);
+            [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, [], $request->ip(), [
+                'purpose' => 'leave',
+            ]);
+        }
 
         try {
             Mail::to($email)->send(new LoaOtpMail($plainOtp, $email));
@@ -205,22 +213,17 @@ class IdentityController extends Controller
             ->first();
     }
 
-    private function newLeaveBlockReason(string $studentId, string $email): ?string
+    private function newLeaveEmailBlockReason(string $email): ?string
     {
-        $samePerson = function ($query) use ($studentId, $email) {
-            $query->where('student_id', $studentId)
-                ->orWhereRaw('LOWER(email) = ?', [$email]);
-        };
-
         $openLink = LoaAccessToken::query()
-            ->where($samePerson)
+            ->whereRaw('LOWER(email) = ?', [$email])
             ->whereNull('used_at')
             ->where('expires_at', '>', now())
             ->where('otp_verified', true)
             ->exists();
 
         $inReview = LoaRequest::query()
-            ->where($samePerson)
+            ->whereRaw('LOWER(email) = ?', [$email])
             ->whereNotIn('status', ['rejected', 'discontinued', 'approved'])
             ->where(function ($q) {
                 $q->where('status', '!=', 'draft')
@@ -231,10 +234,10 @@ class IdentityController extends Controller
             ->exists();
 
         if ($openLink || $inReview) {
-            return 'This student number or EVSU email already has an active LOA request. Only one request is allowed at a time.';
+            return 'This EVSU email already has an active LOA request. Only one request is allowed at a time.';
         }
 
-        if (LoaRequest::latestApprovedFor($studentId, $email)) {
+        if (LoaRequest::query()->whereRaw('LOWER(email) = ?', [$email])->where('status', 'approved')->exists()) {
             return 'You already have an approved leave. Use Extend leave if you need more time.';
         }
 

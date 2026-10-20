@@ -69,7 +69,7 @@ class LoaAccessToken extends Model
      * @param  array{student_id: string, first_name: string, middle_name?: ?string, last_name: string}  $identity
      * @param  array{purpose?: string, parent_loa_id?: int|null}  $options
      */
-    public static function issueForEmail(string $email, array $identity, ?string $ipAddress = null, array $options = []): array
+    public static function issueForEmail(string $email, array $identity = [], ?string $ipAddress = null, array $options = []): array
     {
         $plainToken = Str::random(40);
         $plainOtp   = (string) random_int(100000, 999999); // 6-digit OTP
