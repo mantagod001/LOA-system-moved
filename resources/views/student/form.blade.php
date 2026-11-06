@@ -10,7 +10,11 @@
         @if ($isExtension)
             Academic details stay as on the approved leave. Pick a new return date (up to one extra year after the current end date). The President reviews this first.
         @else
-            Fill in your student information and leave details below. <strong>Leave may not exceed one year</strong> from the start date.
+            @if (!empty($officialPrefill))
+                Your student number and name are filled from the official list. Complete the rest of the form. <strong>Leave may not exceed one year</strong> from the start date.
+            @else
+                Fill in your student information and leave details below. If your email is on the official list, your student number and name fill in automatically. <strong>Leave may not exceed one year</strong> from the start date.
+            @endif
         @endif
     </x-slot:lead>
 
@@ -54,27 +58,41 @@
                     value="{{ old('student_id', $loa->student_id) }}"
                     inputmode="numeric"
                     placeholder="e.g. 2021-12345"
+                    @if (!empty($officialPrefill)) readonly @endif
                     data-student-id-input
-                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('student_id') border-red-400 bg-red-50 @enderror">
+                    data-student-lookup-url="{{ url('/api/students/lookup') }}"
+                    data-official-prefill="{{ !empty($officialPrefill) ? '1' : '0' }}"
+                    class="mt-1 w-full rounded-xl border border-maroon-900/15 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @if (!empty($officialPrefill)) bg-maroon-50 @else bg-cream-50 @endif @error('student_id') border-red-400 bg-red-50 @enderror">
+                @if (!empty($officialPrefill))
+                    <p class="mt-1 text-sm text-maroon-800/70">Filled from the official student list. You do not need to type this.</p>
+                @else
+                    <p data-student-lookup-status class="mt-1 text-sm text-maroon-800/70"></p>
+                @endif
                 @error('student_id') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
             </div>
             <div class="grid gap-4 sm:grid-cols-3">
                 <div>
                     <label for="first_name" class="block text-sm font-medium text-maroon-900">First name</label>
                     <input id="first_name" name="first_name" required value="{{ old('first_name', $loa->first_name) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('first_name') border-red-400 bg-red-50 @enderror">
+                        data-official-name
+                        @if (!empty($officialPrefill)) readonly @endif
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @if (!empty($officialPrefill)) bg-maroon-50 @else bg-cream-50 @endif @error('first_name') border-red-400 bg-red-50 @enderror">
                     @error('first_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="middle_name" class="block text-sm font-medium text-maroon-900">Middle name <span class="font-normal text-maroon-800/50">(optional)</span></label>
                     <input id="middle_name" name="middle_name" value="{{ old('middle_name', $loa->middle_name) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('middle_name') border-red-400 bg-red-50 @enderror">
+                        data-official-name
+                        @if (!empty($officialPrefill)) readonly @endif
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @if (!empty($officialPrefill)) bg-maroon-50 @else bg-cream-50 @endif @error('middle_name') border-red-400 bg-red-50 @enderror">
                     @error('middle_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="last_name" class="block text-sm font-medium text-maroon-900">Last name</label>
                     <input id="last_name" name="last_name" required value="{{ old('last_name', $loa->last_name) }}"
-                        class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('last_name') border-red-400 bg-red-50 @enderror">
+                        data-official-name
+                        @if (!empty($officialPrefill)) readonly @endif
+                        class="mt-1 w-full rounded-xl border border-maroon-900/15 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @if (!empty($officialPrefill)) bg-maroon-50 @else bg-cream-50 @endif @error('last_name') border-red-400 bg-red-50 @enderror">
                     @error('last_name') <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p> @enderror
                 </div>
             </div>

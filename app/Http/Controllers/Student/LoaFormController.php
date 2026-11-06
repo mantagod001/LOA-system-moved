@@ -12,6 +12,7 @@ use App\Models\Department;
 use App\Models\LoaAccessToken;
 use App\Models\LoaRequest;
 use App\Models\Program;
+use App\Models\StudentWhitelist;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,14 @@ class LoaFormController extends Controller
             return redirect()->route('student.form.submitted', ['token' => $token]);
         }
 
+        if (! $request->isExtension()) {
+            $this->prefillFromOfficialList($request, $access);
+        }
+
         $request->load(['parentLoa', 'department', 'program']);
+        $officialPrefill = ! $request->isExtension()
+            && filled($request->student_id)
+            && StudentWhitelist::findByEmail($access->email);
 
         return view('student.form', [
             'token' => $token,
@@ -52,6 +60,7 @@ class LoaFormController extends Controller
             'attachmentCategories' => AttachmentCategory::cases(),
             'academicYears' => AcademicSemester::yearOptions($request->academic_year),
             'semesters' => AcademicSemester::cases(),
+            'officialPrefill' => (bool) $officialPrefill,
         ]);
     }
 
@@ -167,6 +176,8 @@ class LoaFormController extends Controller
                     ->withInput()
                     ->withErrors(['student_id' => 'This student number already has an approved leave. Use Extend leave if you need more time.']);
             }
+
+            $validated = $this->applyOfficialIdentity($validated, $loa->email);
 
             $maxReturn = now()->parse($validated['start_date'])->addYear();
             if (now()->parse($validated['return_date'])->gt($maxReturn)) {
@@ -332,9 +343,67 @@ class LoaFormController extends Controller
                 'parent_relationship' => $parent->parent_relationship,
                 'parent_phone'        => $parent->parent_phone,
             ]);
+        } else {
+            $this->mergeOfficialIdentity($attrs, $access->email);
         }
 
         return LoaRequest::create($attrs);
+    }
+
+    private function prefillFromOfficialList(LoaRequest $loa, LoaAccessToken $access): void
+    {
+        $attrs = [
+            'student_id' => $loa->student_id,
+            'first_name' => $loa->first_name,
+            'middle_name' => $loa->middle_name,
+            'last_name' => $loa->last_name,
+            'full_name' => $loa->full_name,
+        ];
+        $this->mergeOfficialIdentity($attrs, $access->email);
+
+        if (($attrs['student_id'] ?? '') === ($loa->student_id ?: '')) {
+            return;
+        }
+
+        $loa->fill($attrs)->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $attrs
+     */
+    private function mergeOfficialIdentity(array &$attrs, ?string $email): void
+    {
+        $official = StudentWhitelist::findByEmail($email);
+        if (! $official) {
+            return;
+        }
+
+        $attrs['student_id'] = $official->student_id;
+        $attrs['first_name'] = $official->first_name;
+        $attrs['middle_name'] = $official->middle_name;
+        $attrs['last_name'] = $official->last_name;
+        $attrs['full_name'] = $official->name;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function applyOfficialIdentity(array $validated, ?string $email): array
+    {
+        $official = StudentWhitelist::findByStudentId($validated['student_id'])
+            ?: StudentWhitelist::findByEmail($email);
+
+        if (! $official) {
+            return $validated;
+        }
+
+        $validated['student_id'] = $official->student_id;
+        $validated['first_name'] = $official->first_name ?: $validated['first_name'];
+        $validated['middle_name'] = $official->middle_name;
+        $validated['last_name'] = $official->last_name ?: $validated['last_name'];
+
+        return $validated;
     }
 
     private function resolveToken(string $token, bool $allowUsed = false): LoaAccessToken|RedirectResponse

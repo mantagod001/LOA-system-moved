@@ -32,5 +32,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('grammar-check', function (Request $request) {
             return Limit::perMinute(6)->by($request->ip());
         });
+
+        RateLimiter::for('student-lookup', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
     }
 }

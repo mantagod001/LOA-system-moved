@@ -122,22 +122,83 @@ if (departmentFilter && programSelect && programsJson) {
 // ── Student ID input — format as YYYY-NNNNN ──────────────────────────────
 const studentIdInput = document.querySelector('[data-student-id-input]');
 if (studentIdInput) {
-    studentIdInput.addEventListener('input', () => {
-        let val = studentIdInput.value.replace(/[^\d]/g, ''); // digits only
+    const formatStudentId = (raw) => {
+        let val = raw.replace(/[^\d]/g, '');
         if (val.length > 4) {
             val = val.slice(0, 4) + '-' + val.slice(4, 10);
         }
-        studentIdInput.value = val;
+        return val;
+    };
+
+    const lookupBase = studentIdInput.getAttribute('data-student-lookup-url');
+    const alreadyPrefill = studentIdInput.getAttribute('data-official-prefill') === '1';
+    const statusEl = document.querySelector('[data-student-lookup-status]');
+    const nameFields = document.querySelectorAll('[data-official-name]');
+    let lookupTimer = null;
+
+    const setNamesLocked = (locked) => {
+        nameFields.forEach((el) => {
+            el.readOnly = locked;
+            el.classList.toggle('bg-maroon-50', locked);
+        });
+    };
+
+    const lookupStudent = () => {
+        if (!lookupBase) {
+            return;
+        }
+
+        const id = studentIdInput.value.trim();
+        if (!/^\d{4}-\d{4,6}$/.test(id)) {
+            if (statusEl) statusEl.textContent = '';
+            setNamesLocked(false);
+            return;
+        }
+
+        if (statusEl) statusEl.textContent = 'Checking official list…';
+
+        fetch(`${lookupBase}/${encodeURIComponent(id)}`, { headers: { Accept: 'application/json' } })
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.found) {
+                    setNamesLocked(false);
+                    if (statusEl) statusEl.textContent = '';
+                    return;
+                }
+
+                const first = document.getElementById('first_name');
+                const middle = document.getElementById('middle_name');
+                const last = document.getElementById('last_name');
+                if (first) first.value = data.first_name || '';
+                if (middle) middle.value = data.middle_name || '';
+                if (last) last.value = data.last_name || '';
+                setNamesLocked(true);
+                if (statusEl) statusEl.textContent = 'Name filled from the official student list.';
+            })
+            .catch(() => {
+                if (statusEl) statusEl.textContent = 'Could not check the official list right now.';
+            });
+    };
+
+    const scheduleLookup = () => {
+        clearTimeout(lookupTimer);
+        lookupTimer = setTimeout(lookupStudent, 350);
+    };
+
+    studentIdInput.addEventListener('input', () => {
+        studentIdInput.value = formatStudentId(studentIdInput.value);
+        scheduleLookup();
     });
 
     studentIdInput.addEventListener('paste', (e) => {
         e.preventDefault();
-        let pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/[^\d]/g, '');
-        if (pasted.length > 4) {
-            pasted = pasted.slice(0, 4) + '-' + pasted.slice(4, 10);
-        }
-        studentIdInput.value = pasted;
+        studentIdInput.value = formatStudentId((e.clipboardData || window.clipboardData).getData('text'));
+        scheduleLookup();
     });
+
+    if (!alreadyPrefill && studentIdInput.value) {
+        lookupStudent();
+    }
 }
 
 // ── +63 phone input ──────────────────────────────────────────────────────
@@ -402,6 +463,17 @@ if (attachmentRows && addAttachmentRow) {
 const grammarBox = document.querySelector('[data-grammar-check]');
 if (grammarBox) {
     const source = grammarBox.querySelector('[data-grammar-source]');
+    const examplesToggle = grammarBox.querySelector('[data-reason-examples-toggle]');
+    const examples = grammarBox.querySelector('[data-reason-examples]');
+    examplesToggle?.addEventListener('click', () => {
+        examples?.classList.toggle('hidden');
+    });
+    grammarBox.querySelectorAll('[data-reason-example]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (source) source.value = btn.getAttribute('data-reason-text') || '';
+            examples?.classList.add('hidden');
+        });
+    });
     const runBtn = grammarBox.querySelector('[data-grammar-run]');
     const status = grammarBox.querySelector('[data-grammar-status]');
     const preview = grammarBox.querySelector('[data-grammar-preview]');

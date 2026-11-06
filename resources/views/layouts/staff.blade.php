@@ -76,6 +76,13 @@
                     <span aria-hidden="true" class="text-base leading-none">📊</span>
                     <span>Reports &amp; Analytics</span>
                 </a>
+                @if ($user?->role->is(\App\Enums\UserRole::Registrar))
+                <a href="{{ route('staff.students.index') }}"
+                   class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ str_starts_with($activeRoute, 'staff.students') ? 'bg-maroon-800/80 text-cream-50' : 'text-cream-100/85 hover:bg-white/10 hover:text-cream-50' }}">
+                    <span aria-hidden="true" class="text-base leading-none">☰</span>
+                    <span>Student list</span>
+                </a>
+                @endif
                 @endunless
                 <a href="{{ route('staff.profile') }}"
                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ str_starts_with($activeRoute, 'staff.profile') ? 'bg-maroon-800/80 text-cream-50' : 'text-cream-100/85 hover:bg-white/10 hover:text-cream-50' }}">
@@ -130,6 +137,9 @@
             <a href="{{ route('staff.dashboard') }}" class="rounded-md px-3 py-2 hover:bg-white/10">▣ Dashboard</a>
             <a href="{{ route('staff.pipeline') }}" class="rounded-md px-3 py-2 hover:bg-white/10">⇌ Approval Pipeline</a>
             <a href="{{ route('staff.reports') }}" class="rounded-md px-3 py-2 hover:bg-white/10">📊 Reports &amp; Analytics</a>
+            @if ($user?->role->is(\App\Enums\UserRole::Registrar))
+            <a href="{{ route('staff.students.index') }}" class="rounded-md px-3 py-2 hover:bg-white/10">☰ Student list</a>
+            @endif
             @endunless
             <a href="{{ route('staff.profile') }}" class="rounded-md px-3 py-2 hover:bg-white/10">👤 User Profile</a>
             @if ($user?->role->is(\App\Enums\UserRole::Administrator))

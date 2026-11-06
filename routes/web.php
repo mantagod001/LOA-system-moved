@@ -9,6 +9,7 @@ use App\Http\Controllers\Staff\DashboardController;
 use App\Http\Controllers\Staff\LoaRequestController;
 use App\Http\Controllers\Staff\ProfileController;
 use App\Http\Controllers\Staff\ReportsController;
+use App\Http\Controllers\Staff\StudentWhitelistController;
 use App\Http\Controllers\Student\GrammarCheckController;
 use App\Http\Controllers\Student\IdentityController;
 use App\Http\Controllers\Student\LoaFormController;
@@ -65,6 +66,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/reports',   ReportsController::class)->name('staff.reports');
     Route::get('/staff/profile',          [ProfileController::class, 'show'])->name('staff.profile');
     Route::patch('/staff/profile',        [ProfileController::class, 'updateName'])->name('staff.profile.name');
+
+    Route::get('/staff/students', [StudentWhitelistController::class, 'index'])->name('staff.students.index');
+    Route::post('/staff/students', [StudentWhitelistController::class, 'store'])->name('staff.students.store');
 
     // LOA detail / approve / reject / PDF download (dept-scoped)
     Route::middleware('dept.scope')->group(function () {
