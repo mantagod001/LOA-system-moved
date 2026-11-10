@@ -5,7 +5,7 @@
 @section('content')
 <x-page-shell eyebrow="EVSU-SASO-F-040 · Resubmitted" title="Your updated LOA has been received" width="2xl">
     <x-slot:lead>
-        Your resubmission has been sent back to the approval pipeline, starting from the Department Head.
+        Your resubmission is back in the approval queue from the office that last rejected it.
     </x-slot:lead>
 
     <div class="space-y-4 rounded-2xl border border-maroon-900/10 bg-white p-6 sm:p-8">
@@ -27,8 +27,8 @@
         <div>
             <p class="mb-2 text-sm font-semibold text-maroon-900">What happens next</p>
             <p class="text-sm leading-relaxed text-maroon-800/80">
-                Your updated application is now back in the approval queue starting from the stage that previously rejected it.
-                You will receive an email update when there is a decision.
+                Offices that already approved this leave stay approved. The office that rejected it reviews again.
+                You will receive an email when there is a decision.
             </p>
             <p class="mt-2 text-sm text-maroon-800/80">
                 Track your status anytime at

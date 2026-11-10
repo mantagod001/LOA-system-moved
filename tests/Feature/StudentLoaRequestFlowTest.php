@@ -20,7 +20,47 @@ class StudentLoaRequestFlowTest extends TestCase
 
     public function test_landing_page_renders(): void
     {
-        $this->get('/')->assertOk()->assertSee('Request LOA')->assertSee('Extend leave')->assertSee('Staff login');
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Request LOA')
+            ->assertSee('Extend leave')
+            ->assertSee('Staff login')
+            ->assertSeeText('They do not approve the leave.')
+            ->assertSeeText('staff can mark that the student returned')
+            ->assertDontSeeText('Seven days before your return date');
+    }
+
+    public function test_expired_form_link_asks_student_to_request_a_new_code(): void
+    {
+        $plain = \Illuminate\Support\Str::random(40);
+
+        LoaAccessToken::create([
+            'student_id' => '2021-0001',
+            'full_name' => 'Expired Link',
+            'email' => 'expired.link@evsu.edu.ph',
+            'token_hash' => LoaAccessToken::hashPlainToken($plain),
+            'expires_at' => now()->subHour(),
+            'otp_verified' => true,
+            'purpose' => 'leave',
+        ]);
+
+        $response = $this->get(route('student.form.show', $plain));
+        $response->assertRedirect(route('student.identity'));
+        $response->assertSessionHasErrors(['token']);
+
+        $this->followRedirects($response)
+            ->assertOk()
+            ->assertSeeText('expired after one day')
+            ->assertSeeText('What to do next');
+    }
+
+    public function test_expired_resubmit_link_explains_how_to_recover(): void
+    {
+        $this->get(route('student.resubmit.show', str_repeat('a', 40)))
+            ->assertOk()
+            ->assertSeeText('This resubmit link has expired or was already used.')
+            ->assertSeeText('What to do next')
+            ->assertDontSeeText('Seven days before your return date');
     }
 
     public function test_identity_sends_otp_and_submission_creates_control_number(): void

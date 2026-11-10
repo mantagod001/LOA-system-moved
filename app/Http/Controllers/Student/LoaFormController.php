@@ -411,7 +411,7 @@ class LoaFormController extends Controller
         // Guard: token must be exactly 40 alphanumeric chars — anything else is
         // obviously invalid (email client truncation, partial paste, etc.)
         if (! preg_match('/^[A-Za-z0-9]{40}$/', $token)) {
-            return $this->invalidFormRedirect(null, 'That form link appears to be incomplete or was copied incorrectly. Please request a new one.');
+            return $this->invalidFormRedirect(null, 'That form link looks incomplete. Copy the full address from the email, or request a new code below.');
         }
 
         $access = LoaAccessToken::query()
@@ -419,11 +419,11 @@ class LoaFormController extends Controller
             ->first();
 
         if (! $access) {
-            return $this->invalidFormRedirect(null, 'That form link is invalid. It may have been altered or already replaced. Please request a new one.');
+            return $this->invalidFormRedirect(null, 'That form link does not work. Request a new verification code below to get a new form.');
         }
 
         if ($access->isExpired()) {
-            return $this->invalidFormRedirect($access, 'That form link expired 24 hours after it was sent. Please request a new one.');
+            return $this->invalidFormRedirect($access, 'That form link expired after one day. Request a new verification code below to get a new form.');
         }
 
         if (! $allowUsed && $access->used_at && $access->loaRequest?->isSubmitted()) {

@@ -11,6 +11,13 @@
     </x-slot:lead>
 
     <div class="space-y-4 rounded-2xl border border-maroon-900/10 bg-white p-6 sm:p-8">
+        <div>
+            <p class="text-sm font-semibold text-maroon-900">What happens next</p>
+            <p class="mt-1 text-base leading-relaxed text-maroon-800/80">
+                Open that email today, complete the form, and wait for a confirmation with your control number.
+            </p>
+        </div>
+
         <p class="text-base leading-relaxed text-maroon-800/80">
             Check your inbox and spam folder. The email comes from <strong>EVSU OCC LOA</strong>.
         </p>

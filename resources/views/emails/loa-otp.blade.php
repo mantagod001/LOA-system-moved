@@ -38,6 +38,9 @@
                                 Enter this code on the LOA request page to verify your EVSU email address
                                 (<strong>{{ $email }}</strong>) and continue with your Leave of Absence application.
                             </p>
+                            <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#2b070d;">
+                                <strong>What happens next:</strong> after this code is verified, we email your private form link. Open that link the same day.
+                            </p>
                             <p style="margin:0;font-size:13px;color:#8a1c30;">
                                 If you did not request this code, you can safely ignore this email.
                             </p>

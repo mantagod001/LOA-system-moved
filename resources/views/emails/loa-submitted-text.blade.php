@@ -34,12 +34,12 @@ Reason:
 WHAT HAPPENS NEXT
 -----------------
 @if ($loa->isExtension())
-The President will review this extension first. After that, Department Head, SASO, and Campus Director follow the same sequence as a new leave.
+The President reviews this extension first, then Department Head, SASO, and Campus Director.
 @else
-Your Department Head will review your application and may contact your
-parent or guardian at the number you provided. You will receive email
-updates as your request moves through each approval step.
+Your Department Head reviews first, then SASO, then Campus Director.
+Your Department Head may contact your parent or guardian at the number you provided.
 @endif
+You will receive an email at each step. Keep your control number. The official copy after approval also includes it.
 
 If you did not submit this request, contact the SASO Office immediately.
 

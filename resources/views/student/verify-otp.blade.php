@@ -39,6 +39,7 @@
         </form>
 
         <div class="border-t border-maroon-900/8 pt-4 text-sm text-maroon-800/70 space-y-2">
+            <p><span class="font-semibold text-maroon-900">What happens next:</span> after this code is verified, we email your private form link. Open that link the same day.</p>
             <p>Didn't receive the code? Check your spam folder. The email comes from <strong>EVSU OCC LOA</strong>.</p>
             <p>
                 Wrong email?

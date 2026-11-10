@@ -20,7 +20,7 @@
                         <td style="padding:32px;">
                             <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#2b070d;">Hello{{ filled($accessToken->full_name) ? ' '.$accessToken->full_name : '' }},</p>
                             <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#4a0e18;">
-                                Use the button below to open your {{ $accessToken->isExtension() ? 'leave extension' : 'Leave of Absence' }} form (EVSU-SASO-F-040). Complete it as soon as you can. The link stops working one day after this email is sent.
+                                Use the button below to open your {{ $accessToken->isExtension() ? 'leave extension' : 'Leave of Absence' }} form (EVSU-SASO-F-040). Complete it as soon as you can. The link stops working one day after this email is sent. If it expires, request a new verification code from Request LOA or Extend leave on the website.
                             </p>
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto 28px;">
                                 <tr>

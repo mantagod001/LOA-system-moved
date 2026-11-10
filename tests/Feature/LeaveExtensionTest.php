@@ -148,8 +148,13 @@ class LeaveExtensionTest extends TestCase
             'purpose'      => 'extension',
         ]);
 
-        $this->get(route('student.form.show', $plain))
-            ->assertRedirect(route('student.extend'));
+        $response = $this->get(route('student.form.show', $plain));
+        $response->assertRedirect(route('student.extend'));
+
+        $this->followRedirects($response)
+            ->assertOk()
+            ->assertSeeText('expired after one day')
+            ->assertSeeText('What to do next');
     }
 
     public function test_president_cannot_approve_regular_leave(): void

@@ -14,7 +14,10 @@
     </x-slot:lead>
 
     @if ($errors->has('token'))
-        <p class="mb-4 rounded-lg border border-maroon-600/20 bg-maroon-600/10 px-4 py-3 text-sm text-maroon-800">{{ $errors->first('token') }}</p>
+        <div class="mb-4 rounded-lg border border-maroon-600/20 bg-maroon-600/10 px-4 py-3 text-sm text-maroon-800">
+            <p>{{ $errors->first('token') }}</p>
+            <p class="mt-2 font-semibold">What to do next: send a new verification code below.</p>
+        </div>
     @endif
 
     <form method="POST" action="{{ route($isExtension ? 'student.extend.store' : 'student.identity.store') }}" class="space-y-5 rounded-2xl border border-maroon-900/10 bg-white p-6 sm:p-8">

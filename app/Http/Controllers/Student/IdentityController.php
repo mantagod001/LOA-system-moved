@@ -283,6 +283,6 @@ class IdentityController extends Controller
 
         return redirect()
             ->route($isExtension ? 'student.extend' : 'student.identity')
-            ->withErrors(['email' => 'This verification link is invalid or has expired. Please start again.']);
+            ->withErrors(['email' => 'This verification code expired. Request a new code below.']);
     }
 }

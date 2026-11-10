@@ -27,7 +27,7 @@ class ResubmitController extends Controller
     {
         $loa = $this->resolve($token);
 
-        if ($loa instanceof RedirectResponse) {
+        if ($loa instanceof View || $loa instanceof RedirectResponse) {
             return $loa;
         }
 
@@ -47,11 +47,11 @@ class ResubmitController extends Controller
 
     // ── Handle resubmission ───────────────────────────────────────────────────
 
-    public function store(Request $request, string $token): RedirectResponse
+    public function store(Request $request, string $token): RedirectResponse|View
     {
         $loa = $this->resolve($token);
 
-        if ($loa instanceof RedirectResponse) {
+        if ($loa instanceof View || $loa instanceof RedirectResponse) {
             return $loa;
         }
 
@@ -253,22 +253,34 @@ class ResubmitController extends Controller
 
     // ── Token resolver ────────────────────────────────────────────────────────
 
-    private function resolve(string $token): LoaRequest|RedirectResponse
+    private function resolve(string $token): LoaRequest|View
     {
         if (! preg_match('/^[A-Za-z0-9]{40}$/', $token)) {
-            return redirect()
-                ->route('home')
-                ->withErrors(['token' => 'That resubmit link is invalid. Please use the link from your rejection email.']);
+            return $this->expiredResubmitView(
+                'This resubmit link is incomplete.',
+                'Copy the full address from the rejection email, or contact your Department Head or SASO if you still need to correct the application.',
+            );
         }
 
         $loa = LoaRequest::findByResubmitToken($token);
 
         if (! $loa) {
-            return redirect()
-                ->route('home')
-                ->withErrors(['token' => 'That resubmit link is invalid or has expired. Links are valid for 7 days after the rejection email is sent.']);
+            return $this->expiredResubmitView(
+                'This resubmit link has expired or was already used.',
+                'Resubmit links work for 7 days after the rejection email. If you still need to correct the application, contact your Department Head or SASO. Start a new Request LOA only if this is a different leave.',
+            );
         }
 
         return $loa;
+    }
+
+    private function expiredResubmitView(string $title, string $body): View
+    {
+        return view('student.link-expired', [
+            'title' => $title,
+            'body' => $body,
+            'actionUrl' => route('home'),
+            'actionLabel' => 'Back to home',
+        ]);
     }
 }

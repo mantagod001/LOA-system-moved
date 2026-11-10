@@ -20,9 +20,10 @@ Department   : {{ $loa->department?->name ?? '—' }}
 
 NEXT STEPS
 ----------
-Please proceed to the Registrar's Office to complete any required clearance
-procedures before your leave begins. Keep this email and your control number
-for reference.
+Keep this email, your control number, and the attached PDF. Registrar and
+Guidance update office records after approval; they do not approve the leave.
+Staff may later record whether you returned or did not enroll. If you need
+more time, use Extend leave on the website.
 
 For questions, contact the SASO Office or your Department Head.
 

@@ -205,7 +205,7 @@
                 @elseif ($stageName === 'done' || $loa->status === 'approved')
                     <div class="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
                         <p class="text-sm font-semibold text-emerald-700">✓ Fully Approved</p>
-                        <p class="text-xs text-emerald-600 mt-0.5">All approval stages completed. Please proceed to the Registrar's Office.</p>
+                        <p class="text-xs text-emerald-600 mt-0.5">All approval stages completed. Keep the PDF from your approval email. Registrar and Guidance update office records; they do not approve the leave.</p>
                     </div>
                 @elseif ($loa->status === 'rejected')
                     <div class="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3">

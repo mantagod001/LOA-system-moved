@@ -2,6 +2,7 @@ Hello{{ filled($accessToken->full_name) ? ' '.$accessToken->full_name : '' }},
 
 Use the link below to open your {{ $accessToken->isExtension() ? 'leave extension' : 'Leave of Absence' }} form (EVSU-SASO-F-040).
 Complete it as soon as you can. The link stops working one day after this email is sent.
+If it expires, request a new verification code from Request LOA or Extend leave on the website.
 
 {{ $formUrl }}
 

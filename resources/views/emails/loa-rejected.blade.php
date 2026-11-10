@@ -78,6 +78,7 @@
                             <p style="margin:0 0 16px;font-size:13px;line-height:1.7;color:#4a0e18;">
                                 If you would like to address the concerns raised and resubmit your application,
                                 click the button below. The link is valid for <strong>7 days</strong> and can only be used once.
+                                If that link expires, contact your Department Head or SASO. Do not start a new Request LOA unless this is a different leave.
                             </p>
                             @if ($resubmitUrl)
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0">

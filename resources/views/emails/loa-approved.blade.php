@@ -106,8 +106,8 @@
                         <td style="padding:24px 32px 0;">
                             <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#2b070d;">Next Steps</p>
                             <p style="margin:0;font-size:13px;line-height:1.7;color:#4a0e18;">
-                                Please proceed to the Registrar's Office to complete any required clearance procedures before your leave begins.
-                                Keep this email and your control number for reference.
+                                Keep this email, your control number, and the attached PDF. Registrar and Guidance update office records after approval; they do not approve the leave.
+                                Staff may later record whether you returned or did not enroll. If you need more time, use Extend leave on the website.
                             </p>
                         </td>
                     </tr>

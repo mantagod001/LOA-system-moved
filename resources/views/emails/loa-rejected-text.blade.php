@@ -26,6 +26,8 @@ RESUBMIT YOUR APPLICATION
 @if ($resubmitUrl)
 You may address the concerns raised and resubmit your application using
 the link below. The link is valid for 7 days and can only be used once.
+If that link expires, contact your Department Head or SASO. Do not start
+a new Request LOA unless this is a different leave.
 
 {{ $resubmitUrl }}
 

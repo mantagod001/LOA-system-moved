@@ -119,11 +119,11 @@
                             <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#2b070d;">What happens next</p>
                             <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#4a0e18;">
                                 @if ($loa->isExtension())
-                                    The President will review this extension first. After that, Department Head, SASO, and Campus Director follow the same sequence as a new leave.
+                                    The President reviews this extension first, then Department Head, SASO, and Campus Director.
                                 @else
-                                    Your Department Head will review your application and may contact your parent or guardian at the number you provided.
+                                    Your Department Head reviews first, then SASO, then Campus Director. Your Department Head may contact your parent or guardian at the number you provided.
                                 @endif
-                                You will receive updates by email as your request moves through each step.
+                                You will receive an email at each step. Keep your control number. The official copy after approval also includes it.
                             </p>
                         </td>
                     </tr>
