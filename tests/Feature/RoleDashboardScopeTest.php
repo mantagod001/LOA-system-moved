@@ -441,6 +441,22 @@ class RoleDashboardScopeTest extends TestCase
         return $loa;
     }
 
+    public function test_every_staff_role_can_log_out(): void
+    {
+        foreach (UserRole::cases() as $role) {
+            $user = User::factory()->create([
+                'role' => $role,
+                'department_id' => $role === UserRole::DepartmentHead ? $this->dcs->id : null,
+            ]);
+
+            $this->actingAs($user)
+                ->post(route('logout'))
+                ->assertRedirect(route('home'));
+
+            $this->assertGuest();
+        }
+    }
+
     private function addAttachmentTo(LoaRequest $loa, string $fileName): LoaAttachment
     {
         $file = UploadedFile::fake()->create($fileName, 50);

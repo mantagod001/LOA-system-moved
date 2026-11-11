@@ -22,8 +22,10 @@ NEXT STEPS
 ----------
 Keep this email, your control number, and the attached PDF. Registrar and
 Guidance update office records after approval; they do not approve the leave.
-Staff may later record whether you returned or did not enroll. If you need
-more time, use Extend leave on the website.
+Seven days before the return date, you will receive an email reminder.
+Go to school that day to enroll at the Registrar, or use Extend leave
+if you need more time. Staff may later record whether you returned or
+did not enroll.
 
 For questions, contact the SASO Office or your Department Head.
 

@@ -84,7 +84,7 @@
             ['Control Number', 'Each application gets an ID such as EVSU-OC-LOA-2026-0001 for tracking and the PDF.'],
             ['Multi-level review', 'New leave: Department Head → SASO → Campus Director. Extensions: President first, then the same three offices.'],
             ['Registrar & Guidance', 'After Campus Director approval, Registrar and Guidance update office records. They do not approve the leave.'],
-            ['Return follow-up', 'When the return date passes, staff can mark that the student returned or did not enroll. LeaveFlow does not ask the student to confirm this automatically.'],
+            ['Return follow-up', 'Seven days before your return date, you receive an email. Go to school that day to enroll at the Registrar, or use Extend leave if you need more time. Staff later mark that the student returned or did not enroll.'],
             ['Staff workspace', 'Employees are invited by the System Administrator to access their office queue.'],
         ] as $card)
             <article class="rounded-2xl border border-maroon-900/10 bg-white p-6 lg:p-7">

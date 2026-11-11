@@ -26,8 +26,8 @@ class StudentLoaRequestFlowTest extends TestCase
             ->assertSee('Extend leave')
             ->assertSee('Staff login')
             ->assertSeeText('They do not approve the leave.')
-            ->assertSeeText('staff can mark that the student returned')
-            ->assertDontSeeText('Seven days before your return date');
+            ->assertSeeText('Seven days before your return date, you receive an email')
+            ->assertSeeText('Staff later mark that the student returned');
     }
 
     public function test_expired_form_link_asks_student_to_request_a_new_code(): void
@@ -60,7 +60,7 @@ class StudentLoaRequestFlowTest extends TestCase
             ->assertOk()
             ->assertSeeText('This resubmit link has expired or was already used.')
             ->assertSeeText('What to do next')
-            ->assertDontSeeText('Seven days before your return date');
+            ->assertSeeText('contact your Department Head or SASO');
     }
 
     public function test_identity_sends_otp_and_submission_creates_control_number(): void
