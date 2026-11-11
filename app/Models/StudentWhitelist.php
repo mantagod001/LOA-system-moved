@@ -28,6 +28,11 @@ class StudentWhitelist extends Model
         return static::query()->where('student_id', $studentId)->first();
     }
 
+    public static function notListedMessage(): string
+    {
+        return 'This EVSU email is not on the official student list. Only a listed student can request a leave. Ask the Registrar if your email should be added.';
+    }
+
     public static function findByEmail(?string $email): ?self
     {
         $email = strtolower(trim((string) $email));

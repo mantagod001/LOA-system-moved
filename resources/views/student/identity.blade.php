@@ -9,7 +9,7 @@
         @if ($isExtension)
             Enter the student number and EVSU email from your approved leave. Both must match. After you open the email link, the extension form is filled from that leave. The President reviews extensions first, then Department Head, SASO, and Campus Director.
         @else
-            Enter your official EVSU email address. We will send a 6-digit verification code to confirm it's you.
+            Enter the EVSU email on the Registrar's student list. A code is sent only when that email matches a listed student.
         @endif
     </x-slot:lead>
 
@@ -47,7 +47,13 @@
                    required autocomplete="email"
                    placeholder="name@evsu.edu.ph"
                    class="mt-1 w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-3 text-base outline-none ring-maroon-700 focus:ring-2 @error('email') border-red-400 bg-red-50 @enderror">
-            <p class="mt-1.5 text-xs text-maroon-800/60">Only <strong>@evsu.edu.ph</strong> addresses are accepted. Gmail, Yahoo, and other personal emails will be rejected.</p>
+            <p class="mt-1.5 text-xs text-maroon-800/60">
+                @if ($isExtension)
+                    Only <strong>@evsu.edu.ph</strong> addresses are accepted. The email must match the approved leave.
+                @else
+                    Only an <strong>@evsu.edu.ph</strong> address on the Registrar's student list is accepted. Gmail, Yahoo, and emails that are not on the list are rejected.
+                @endif
+            </p>
             @error('email')
                 <p class="mt-1 text-sm text-maroon-600">{{ $message }}</p>
             @enderror

@@ -30,14 +30,18 @@ class LoaFormController extends Controller
             return $access;
         }
 
+        if ($access->loaRequest?->isSubmitted()) {
+            return redirect()->route('student.form.submitted', ['token' => $token]);
+        }
+
+        if ($redirect = $this->unlistedNewRequestRedirect($access)) {
+            return $redirect;
+        }
+
         $request = $access->loaRequest ?? $this->startDraft($access);
 
         if ($request instanceof RedirectResponse) {
             return $request;
-        }
-
-        if ($request->isSubmitted()) {
-            return redirect()->route('student.form.submitted', ['token' => $token]);
         }
 
         if (! $request->isExtension()) {
@@ -74,12 +78,16 @@ class LoaFormController extends Controller
 
         $loa = $access->loaRequest?->load('parentLoa');
 
-        if (! $loa) {
-            return redirect()->route('student.form.show', ['token' => $token]);
+        if ($loa?->isSubmitted()) {
+            return redirect()->route('student.form.submitted', ['token' => $token]);
         }
 
-        if ($loa->isSubmitted()) {
-            return redirect()->route('student.form.submitted', ['token' => $token]);
+        if ($redirect = $this->unlistedNewRequestRedirect($access)) {
+            return $redirect;
+        }
+
+        if (! $loa) {
+            return redirect()->route('student.form.show', ['token' => $token]);
         }
 
         $editableRules = [
@@ -159,6 +167,8 @@ class LoaFormController extends Controller
             $validated['middle_name'] = $parent->middle_name ?: $loa->middle_name;
             $validated['last_name'] = $parent->last_name ?: $loa->last_name;
         } else {
+            $validated = $this->applyOfficialIdentity($validated, $loa->email);
+
             $existing = LoaRequest::query()
                 ->where('student_id', $validated['student_id'])
                 ->where('id', '!=', $loa->id)
@@ -176,8 +186,6 @@ class LoaFormController extends Controller
                     ->withInput()
                     ->withErrors(['student_id' => 'This student number already has an approved leave. Use Extend leave if you need more time.']);
             }
-
-            $validated = $this->applyOfficialIdentity($validated, $loa->email);
 
             $maxReturn = now()->parse($validated['start_date'])->addYear();
             if (now()->parse($validated['return_date'])->gt($maxReturn)) {
@@ -386,8 +394,7 @@ class LoaFormController extends Controller
      */
     private function applyOfficialIdentity(array $validated, ?string $email): array
     {
-        $official = StudentWhitelist::findByStudentId($validated['student_id'])
-            ?: StudentWhitelist::findByEmail($email);
+        $official = StudentWhitelist::findByEmail($email);
 
         if (! $official) {
             return $validated;
@@ -399,6 +406,17 @@ class LoaFormController extends Controller
         $validated['last_name'] = $official->last_name ?: $validated['last_name'];
 
         return $validated;
+    }
+
+    private function unlistedNewRequestRedirect(LoaAccessToken $access): ?RedirectResponse
+    {
+        if ($access->isExtension() || StudentWhitelist::findByEmail($access->email)) {
+            return null;
+        }
+
+        return redirect()
+            ->route('student.identity')
+            ->withErrors(['email' => StudentWhitelist::notListedMessage()]);
     }
 
     private function resolveToken(string $token, bool $allowUsed = false): LoaAccessToken|RedirectResponse

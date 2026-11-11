@@ -176,24 +176,34 @@ class StudentWhitelistTest extends TestCase
         ]);
 
         $token2 = $this->issueFormToken('ana@evsu.edu.ph');
-        $this->get(route('student.form.show', $token2))->assertOk();
+        $this->get(route('student.form.show', $token2))
+            ->assertRedirect(route('student.identity'))
+            ->assertSessionHasErrors('email');
 
         $this->post(route('student.form.store', $token2), $this->formPayload($department->id, $program->id, [
             'student_id' => '2021-8888',
             'first_name' => 'Ana',
             'last_name' => 'Reyes',
-        ]))->assertRedirect(route('student.form.submitted', $token2));
+        ]))->assertRedirect(route('student.identity'));
 
-        $this->assertDatabaseHas('loa_requests', [
+        $this->assertDatabaseMissing('loa_requests', [
             'email' => 'ana@evsu.edu.ph',
-            'student_id' => '2021-8888',
-            'first_name' => 'Ana',
-            'last_name' => 'Reyes',
-            'status' => 'submitted',
         ]);
     }
 
-    public function test_form_still_accepts_typed_name_when_list_is_empty(): void
+    public function test_unlisted_evsu_email_does_not_receive_a_code(): void
+    {
+        Mail::fake();
+        $this->seed();
+
+        $this->post(route('student.identity.store'), [
+            'email' => 'missing@evsu.edu.ph',
+        ])->assertSessionHasErrors('email');
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_form_rejects_an_email_that_is_not_on_the_list(): void
     {
         Mail::fake();
         Storage::fake('local');
@@ -202,12 +212,14 @@ class StudentWhitelistTest extends TestCase
         $department = Department::query()->where('code', 'DCS')->firstOrFail();
         $program = Program::query()->where('code', 'BSIT')->firstOrFail();
         $token = $this->issueFormToken();
-        $this->get(route('student.form.show', $token))->assertOk();
+        $this->get(route('student.form.show', $token))
+            ->assertRedirect(route('student.identity'))
+            ->assertSessionHasErrors('email');
 
         $this->post(route('student.form.store', $token), $this->formPayload($department->id, $program->id))
-            ->assertRedirect(route('student.form.submitted', $token));
+            ->assertRedirect(route('student.identity'));
 
-        $this->assertDatabaseHas('loa_requests', [
+        $this->assertDatabaseMissing('loa_requests', [
             'student_id' => '2021-0001',
             'first_name' => 'Juan',
         ]);

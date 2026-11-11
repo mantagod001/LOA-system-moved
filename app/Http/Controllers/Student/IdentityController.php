@@ -7,6 +7,7 @@ use App\Mail\LoaFormAccessMail;
 use App\Mail\LoaOtpMail;
 use App\Models\LoaAccessToken;
 use App\Models\LoaRequest;
+use App\Models\StudentWhitelist;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -93,7 +94,13 @@ class IdentityController extends Controller
                     ->withErrors(['email' => $message]);
             }
 
-            [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, [], $request->ip(), [
+            $official = StudentWhitelist::findByEmail($email);
+            [$accessToken, $plainToken, $plainOtp] = LoaAccessToken::issueForEmail($email, [
+                'student_id' => $official->student_id,
+                'first_name' => $official->first_name,
+                'middle_name' => $official->middle_name,
+                'last_name' => $official->last_name,
+            ], $request->ip(), [
                 'purpose' => 'leave',
             ]);
         }
@@ -176,6 +183,10 @@ class IdentityController extends Controller
                 ->withErrors(['otp' => 'The code is incorrect or has expired. Check your email and try again.']);
         }
 
+        if (! $accessToken->isExtension() && ! StudentWhitelist::findByEmail($accessToken->email)) {
+            return back()->withErrors(['otp' => StudentWhitelist::notListedMessage()]);
+        }
+
         // OTP correct — send the form link to their email
         $formUrl = url('/loa/form/' . $token);
 
@@ -246,6 +257,10 @@ class IdentityController extends Controller
 
         if (LoaRequest::query()->whereRaw('LOWER(email) = ?', [$email])->where('status', 'approved')->exists()) {
             return 'You already have an approved leave. Use Extend leave if you need more time.';
+        }
+
+        if (! StudentWhitelist::findByEmail($email)) {
+            return StudentWhitelist::notListedMessage();
         }
 
         return null;

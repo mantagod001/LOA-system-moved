@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\LoaAccessToken;
 use App\Models\LoaRequest;
 use App\Models\Program;
+use App\Models\StudentWhitelist;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -90,6 +91,7 @@ class StudentLoaRequestFlowTest extends TestCase
 
         $department = Department::query()->where('code', 'DCS')->firstOrFail();
         $program    = Program::query()->where('code', 'BSIT')->firstOrFail();
+        $this->listStudent('juan@evsu.edu.ph', '2021-0001', 'Juan', 'Dela', 'Cruz');
 
         // ── Step 1: submit email → redirects to verify/{token} ───────────────
         $response = $this->post('/loa/request', [
@@ -231,8 +233,13 @@ class StudentLoaRequestFlowTest extends TestCase
             'program_id'     => $program->id,
         ]);
 
-        // Second student requests token with a different email
-        [$tokenRecord, $plainToken] = LoaAccessToken::issueForEmail('other@evsu.edu.ph', [], '127.0.0.1');
+        // Second student is the same listed student number, so the form cannot open a second request.
+        $this->listStudent('other@evsu.edu.ph', '2021-9999', 'New', 'User', 'Name');
+        [$tokenRecord, $plainToken] = LoaAccessToken::issueForEmail('other@evsu.edu.ph', [
+            'student_id' => '2021-9999',
+            'first_name' => 'New',
+            'last_name' => 'Name',
+        ], '127.0.0.1');
         $tokenRecord->update(['otp_verified' => true]);
 
         // Student opens the form link (creates draft)
@@ -270,6 +277,7 @@ class StudentLoaRequestFlowTest extends TestCase
         $dh = \App\Models\User::query()->where('email', 'dcs.head@evsu.edu.ph')->firstOrFail();
         $saso = \App\Models\User::query()->where('email', 'saso@evsu.edu.ph')->firstOrFail();
         $cd = \App\Models\User::query()->where('email', 'director@evsu.edu.ph')->firstOrFail();
+        $this->listStudent('student@evsu.edu.ph', '2022-12345', 'Maria', 'Santos', 'Dela Cruz');
 
         // ── 1. Student requests OTP with email only ───────────────────────────
         $this->post('/loa/request', [
@@ -279,8 +287,8 @@ class StudentLoaRequestFlowTest extends TestCase
         Mail::assertSent(LoaOtpMail::class);
 
         $tokenRecord = LoaAccessToken::query()->where('email', 'student@evsu.edu.ph')->firstOrFail();
-        $this->assertSame('', $tokenRecord->student_id);
-        $this->assertSame('', $tokenRecord->full_name);
+        $this->assertSame('2022-12345', $tokenRecord->student_id);
+        $this->assertSame('Maria Santos Dela Cruz', $tokenRecord->full_name);
 
         // ── 2. Student verifies OTP ───────────────────────────────────────────
         $knownOtp = '654321';
@@ -425,6 +433,8 @@ class StudentLoaRequestFlowTest extends TestCase
         $dhDte = \App\Models\User::query()->where('email', 'dte.head@evsu.edu.ph')->firstOrFail();
         $saso  = \App\Models\User::query()->where('email', 'saso@evsu.edu.ph')->firstOrFail();
         $cd    = \App\Models\User::query()->where('email', 'director@evsu.edu.ph')->firstOrFail();
+        $this->listStudent('student.flow@evsu.edu.ph', '2024-44444', 'Flow', 'Test', 'Student');
+        $this->listStudent('student.flow2@evsu.edu.ph', '2024-55555', 'Juan', 'Rizal', 'Mercado');
 
         // 1. Non-EVSU email is rejected
         $this->post('/loa/request', ['email' => 'student@gmail.com'])
@@ -588,5 +598,16 @@ class StudentLoaRequestFlowTest extends TestCase
         $extFormRes->assertSee('2024-55555');
         $extFormRes->assertSee('Juan Rizal Mercado');
         $extFormRes->assertSee('type="hidden" name="student_id" value="2024-55555"', false);
+    }
+
+    private function listStudent(string $email, string $studentId, string $first, string $middle, string $last): void
+    {
+        StudentWhitelist::query()->create([
+            'student_id' => $studentId,
+            'first_name' => $first,
+            'middle_name' => $middle,
+            'last_name' => $last,
+            'email' => $email,
+        ]);
     }
 }
