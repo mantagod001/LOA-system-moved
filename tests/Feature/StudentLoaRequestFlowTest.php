@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\LoaAccessToken;
 use App\Models\LoaRequest;
 use App\Models\Program;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -27,7 +28,24 @@ class StudentLoaRequestFlowTest extends TestCase
             ->assertSee('Staff login')
             ->assertSeeText('They do not approve the leave.')
             ->assertSeeText('Seven days before your return date, you receive an email')
-            ->assertSeeText('Staff later mark that the student returned');
+            ->assertSeeText('Staff later mark that the student returned')
+            ->assertSee('Ask about LOA')
+            ->assertSee('Choose a question')
+            ->assertSee('If it is not approved')
+            ->assertSee('The President does not approve a new leave.')
+            ->assertSee('Documents are optional.')
+            ->assertSee('choose Check LOA Status')
+            ->assertSee('The email does not enroll you and does not extend the leave.');
+    }
+
+    public function test_signed_in_staff_do_not_see_the_student_help_chat(): void
+    {
+        $staff = User::factory()->create();
+
+        $this->actingAs($staff)
+            ->get('/')
+            ->assertOk()
+            ->assertDontSee('Ask about LOA');
     }
 
     public function test_expired_form_link_asks_student_to_request_a_new_code(): void

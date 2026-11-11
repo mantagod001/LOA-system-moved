@@ -2,6 +2,28 @@
 
 @section('title', 'Home')
 
+@php
+    $faq = [
+        ['group' => 'Requesting', 'question' => 'How do I request a leave?', 'keywords' => ['request', 'apply', 'new leave'], 'answer' => 'Students do not create an account. Choose Request LOA and enter your official @evsu.edu.ph email. We email a 6-digit code that expires in 10 minutes. After that, we email a private form link. Open it the same day. It stops working one day after it is sent. Complete the form and submit. You then receive a control number.'],
+        ['group' => 'Requesting', 'question' => 'Which email can I use?', 'keywords' => ['email', 'gmail', 'yahoo', 'evsu'], 'answer' => 'Only an @evsu.edu.ph address is accepted. Gmail, Yahoo, and other personal emails are rejected.'],
+        ['group' => 'Requesting', 'question' => 'Why is my name already filled in?', 'keywords' => ['filled', 'prefill', 'student number', 'student id'], 'answer' => 'If the Registrar’s student list has your email, the form fills your student number and name. If you are not on the list, type them yourself. You can still submit.'],
+        ['group' => 'Requesting', 'question' => 'What documents can I attach?', 'keywords' => ['document', 'documents', 'attach', 'medical', 'requirements'], 'answer' => 'Documents are optional. You can attach a medical certificate, valid ID, parent or guardian consent, barangay certificate, affidavit, transcript, or another supporting file. Use a PDF or a photo. You can add up to 10 files, and each file can be up to 5 MB. You can still submit if you have no file.'],
+        ['group' => 'Requesting', 'question' => 'I did not get the code', 'keywords' => ['did not get', 'no code', 'spam', 'verification code'], 'answer' => 'Check your inbox and spam. The message comes from EVSU OCC LOA. The code lasts 10 minutes. If it expired, or the email was wrong, go back to Request LOA or Extend leave and send a new code.'],
+        ['group' => 'Requesting', 'question' => 'My link expired. What now?', 'keywords' => ['expired', 'link expired', 'invalid link'], 'answer' => 'Go back to Request LOA or Extend leave and send a new verification code. That gives you a new form link. A form link stops working one day after it is emailed. The verification code lasts 10 minutes.'],
+        ['group' => 'While it is reviewed', 'question' => 'Who approves a new leave?', 'keywords' => ['approve', 'approval', 'department head', 'saso', 'campus director', 'who approves'], 'answer' => 'A new leave goes to the Department Head, then SASO, then the Campus Director. You receive an email at each step. The President does not approve a new leave. Registrar and Guidance can view the record after approval. They do not approve or reject it.'],
+        ['group' => 'While it is reviewed', 'question' => 'How do I check my status?', 'keywords' => ['check status', 'check my status', 'where is my application', 'track my leave'], 'answer' => 'On the home page, choose Check LOA Status. Enter the control number from your submission email and the student number on your form. Both must match. You do not sign in.'],
+        ['group' => 'While it is reviewed', 'question' => 'Where is my control number?', 'keywords' => ['control number', 'where is my control', 'lost my number'], 'answer' => 'It appears on the confirmation page and in the email after you submit. After approval it is also on the official PDF. Check LOA Status on the home page uses that number and your student number.'],
+        ['group' => 'While it is reviewed', 'question' => 'Can I change it after I submit?', 'keywords' => ['edit', 'change after', 'locked', 'already submitted'], 'answer' => 'After you submit, the form cannot be edited. Use Check LOA Status to see it. You can change it only if an office does not approve it. Then use the resubmit link in that email.'],
+        ['group' => 'If it is not approved', 'question' => 'What if my leave is not approved?', 'keywords' => ['rejected', 'not approved', 'why was i rejected'], 'answer' => 'You get an email saying the leave was not approved, with the reason. The office that said no will look at it again if you resubmit. Offices that already said yes stay yes. Your control number stays the same, with a revision. Check LOA Status on the home page also shows that it was not approved.'],
+        ['group' => 'If it is not approved', 'question' => 'How do I resubmit?', 'keywords' => ['resubmit', 'submit again', 'fix my application'], 'answer' => 'Open the email that says your leave was not approved. Click Resubmit My LOA Application. Change what they asked you to fix, then send it. The link lasts 7 days and works one time. Files you already sent stay. New files are added. If the link expired, contact your Department Head or SASO. Start a new Request LOA only if this is a different leave.'],
+        ['group' => 'After it is approved', 'question' => 'What happens after approval?', 'keywords' => ['after approval', 'what happens after', 'official pdf', 'guidance'], 'answer' => 'You receive an email with the official PDF. Keep the control number. Registrar and Guidance update their office records. They do not approve the leave. Enrolling is done at the Registrar. LeaveFlow does not enroll you.'],
+        ['group' => 'After it is approved', 'question' => 'How do I extend a leave?', 'keywords' => ['extend', 'extension', 'president', 'more time'], 'answer' => 'Choose Extend leave. Your student number and the same EVSU email must both match the approved leave. The President reviews an extension first, then the Department Head, SASO, and the Campus Director.'],
+        ['group' => 'After it is approved', 'question' => 'Will I be reminded before my leave ends?', 'keywords' => ['remind', 'reminder', 'seven days', 'leave ends', 'before my leave', 'almost done', 'return date'], 'answer' => 'Seven days before the return date, you receive one email. Go to school that day and enroll at the Registrar, or use Extend leave before that date if you need more time. The email does not enroll you and does not extend the leave. A leave shorter than 7 days does not get this email.'],
+        ['group' => 'After it is approved', 'question' => 'What if I come back or do not enroll?', 'keywords' => ['come back', 'returned', 'enroll', 'did not', 'overdue'], 'answer' => 'LeaveFlow does not see enrollment. After the return date, staff mark Returned if you came back, or Did not enroll if the office confirmed you did not enroll that term. Until one of those is recorded, the leave can show as overdue.'],
+        ['group' => 'After it is approved', 'question' => 'What does discontinued mean?', 'keywords' => ['discontinue', 'discontinued', 'withdrawn'], 'answer' => 'Staff can mark a leave discontinued or withdrawn. You receive an email. You can confirm it on Check LOA Status with your control number and student number. Contact SASO or your Department Head if you think this was a mistake.'],
+    ];
+@endphp
+
 @section('content')
 <section class="hero-panel flex min-h-[calc(100vh-4.25rem)] items-center text-maroon-950">
     <div class="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-10 lg:py-24">
@@ -94,4 +116,32 @@
         @endforeach
     </div>
 </section>
+
+@guest
+<div class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <section id="faq-chat" class="hidden w-[min(100vw-2rem,24rem)] overflow-hidden rounded-2xl border border-maroon-900/10 bg-white shadow-xl" aria-label="Student LOA help">
+        <div class="bg-maroon-900 px-4 py-3 text-cream-50">
+            <p class="text-sm font-semibold">Student help</p>
+            <p class="text-xs text-cream-100/80">How a leave works, from request to return</p>
+        </div>
+        <div id="faq-chat-log" class="max-h-80 space-y-3 overflow-y-auto px-4 py-4 text-sm"></div>
+        <div class="border-t border-maroon-900/10 px-4 py-3">
+            <label for="faq-chat-list" class="mb-1 block text-xs font-semibold text-maroon-800">Choose a question</label>
+            <select id="faq-chat-list" class="w-full rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2 text-sm outline-none ring-maroon-700 focus:ring-2">
+                <option value="">Choose a question</option>
+            </select>
+        </div>
+        <form id="faq-chat-form" class="flex gap-2 border-t border-maroon-900/10 px-4 py-3">
+            <label for="faq-chat-input" class="sr-only">Ask a question</label>
+            <input id="faq-chat-input" type="text" maxlength="200" placeholder="Ask about your leave" class="min-w-0 flex-1 rounded-xl border border-maroon-900/15 bg-cream-50 px-3 py-2 text-sm outline-none ring-maroon-700 focus:ring-2">
+            <button type="submit" class="rounded-xl bg-maroon-800 px-3 py-2 text-sm font-semibold text-cream-50 hover:bg-maroon-700">Ask</button>
+        </form>
+    </section>
+    <button type="button" id="faq-chat-toggle" class="rounded-full bg-maroon-800 px-5 py-3 text-sm font-semibold text-cream-50 shadow-lg hover:bg-maroon-700" aria-expanded="false" aria-controls="faq-chat">
+        Ask about LOA
+    </button>
+</div>
+<script type="application/json" id="faq-chat-data">@json($faq)</script>
+<script src="{{ asset('js/faq-chat.js') }}"></script>
+@endguest
 @endsection
