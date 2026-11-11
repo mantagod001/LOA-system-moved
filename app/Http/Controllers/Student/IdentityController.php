@@ -9,6 +9,7 @@ use App\Models\LoaAccessToken;
 use App\Models\LoaRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
@@ -96,6 +97,12 @@ class IdentityController extends Controller
                 'purpose' => 'leave',
             ]);
         }
+
+        // A lab browser may still be holding the previous student or a staff account.
+        if (Auth::check()) {
+            Auth::logout();
+        }
+        $request->session()->regenerate(true);
 
         try {
             Mail::to($email)->send(new LoaOtpMail($plainOtp, $email));

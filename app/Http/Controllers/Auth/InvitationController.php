@@ -50,8 +50,12 @@ class InvitationController extends Controller
             'email_verified_at'       => now(),
         ])->save();
 
+        if (Auth::check()) {
+            Auth::logout();
+        }
+
         Auth::login($user);
-        $request->session()->regenerate();
+        $request->session()->regenerate(true);
 
         return redirect()->route($user->role->is(\App\Enums\UserRole::Administrator) ? 'staff.profile' : 'staff.dashboard')
             ->with('status', 'Welcome to LeaveFlow! Your account is now active.');

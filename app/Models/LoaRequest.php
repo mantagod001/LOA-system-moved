@@ -10,6 +10,7 @@ use App\Mail\LoaApprovedMail;
 use App\Mail\LoaDiscontinuedMail;
 use App\Mail\LoaRejectedMail;
 use App\Models\LoaRejectionHistory;
+use App\Support\OutboundMail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -612,12 +613,8 @@ class LoaRequest extends Model
         // Send approval email AFTER the transaction commits — not inside it.
         if ($fullyApproved) {
             $this->refresh();
-            try {
-                $this->load(['department', 'program', 'presidentActor', 'deptHeadActor', 'sasoActor', 'campusDirectorActor']);
-                Mail::to($this->email)->send(new LoaApprovedMail($this));
-            } catch (\Throwable $e) {
-                report($e);
-            }
+            $this->load(['department', 'program', 'presidentActor', 'deptHeadActor', 'sasoActor', 'campusDirectorActor']);
+            OutboundMail::afterResponse($this->email, new LoaApprovedMail($this));
         }
     }
 
@@ -658,14 +655,10 @@ class LoaRequest extends Model
         });
 
         // Send rejection email AFTER the transaction commits.
-        try {
-            $this->refresh();
-            $this->load(['department', 'program', 'rejectedByActor']);
-            $resubmitUrl = $plainToken ? url('/loa/resubmit/' . $plainToken) : null;
-            Mail::to($this->email)->send(new LoaRejectedMail($this, $resubmitUrl));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $this->refresh();
+        $this->load(['department', 'program', 'rejectedByActor']);
+        $resubmitUrl = $plainToken ? url('/loa/resubmit/' . $plainToken) : null;
+        OutboundMail::afterResponse($this->email, new LoaRejectedMail($this, $resubmitUrl));
     }
 
     // ── Discontinuation ───────────────────────────────────────────────────────

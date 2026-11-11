@@ -8,6 +8,7 @@ use App\Enums\ApprovalStageStatus;
 use App\Enums\AttachmentCategory;
 use App\Enums\ParentRelationship;
 use App\Mail\LoaSubmittedMail;
+use App\Support\OutboundMail;
 use App\Models\Department;
 use App\Models\LoaAccessToken;
 use App\Models\LoaRequest;
@@ -16,7 +17,6 @@ use App\Models\StudentWhitelist;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -270,14 +270,9 @@ class LoaFormController extends Controller
             $access->forceFill(['used_at' => now()])->save();
         });
 
-        // Send confirmation email with form summary to the student.
-        try {
-            $loa->load(['department', 'program', 'attachments']);
-            Mail::to($loa->email)->send(new LoaSubmittedMail($loa));
-        } catch (\Throwable $e) {
-            report($e);
-            // Non-fatal — submission is already recorded, just log the failure.
-        }
+        // Confirmation goes out after the student already sees the submitted page.
+        $loa->load(['department', 'program', 'attachments']);
+        OutboundMail::afterResponse($loa->email, new LoaSubmittedMail($loa));
 
         return redirect()->route('student.form.submitted', ['token' => $token]);
     }

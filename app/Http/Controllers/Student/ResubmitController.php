@@ -13,9 +13,9 @@ use App\Models\Department;
 use App\Models\LoaRequest;
 use App\Models\Program;
 use App\Models\User;
+use App\Support\OutboundMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -177,17 +177,11 @@ class ResubmitController extends Controller
             ]);
         }
 
-        // Send confirmation email to student.
+        // Send confirmation email to student after the page has already responded.
         $fresh = $loa->fresh();
-        try {
-            $fresh->load(['department', 'program', 'attachments']);
-            Mail::to($fresh->email)->send(new LoaSubmittedMail($fresh));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $fresh->load(['department', 'program', 'attachments']);
+        OutboundMail::afterResponse($fresh->email, new LoaSubmittedMail($fresh));
 
-        // Notify the staff who need to act on the resubmission.
-        // Find users whose role matches the now-pending stage.
         try {
             $this->notifyPendingStageStaff($fresh);
         } catch (\Throwable $e) {
@@ -247,7 +241,7 @@ class ResubmitController extends Controller
         }
 
         $staffQuery->each(function (User $staff) use ($fresh) {
-            Mail::to($staff->email)->send(new LoaResubmittedStaffMail($fresh, $staff));
+            OutboundMail::afterResponse($staff->email, new LoaResubmittedStaffMail($fresh, $staff));
         });
     }
 

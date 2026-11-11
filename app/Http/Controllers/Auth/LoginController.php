@@ -34,13 +34,19 @@ class LoginController extends Controller
                 ->withErrors(['email' => 'Your account is not activated yet. Check your email for the setup link.']);
         }
 
+        // Drop the previous account before writing the new one. A shared browser
+        // must not keep the earlier remember-me cookie or session id.
+        if (Auth::check()) {
+            Auth::logout();
+        }
+
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => 'Those credentials do not match our records.']);
         }
 
-        $request->session()->regenerate();
+        $request->session()->regenerate(true);
 
         $home = auth()->user()->role->is(\App\Enums\UserRole::Administrator)
             ? route('staff.profile')

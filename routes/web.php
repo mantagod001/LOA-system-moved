@@ -21,12 +21,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 
 // ── Staff login / logout (self-registration removed) ─────────────────────────
-Route::middleware('guest')->group(function () {
-    Route::get('/staff/login',  [LoginController::class, 'create'])->name('login');
-    Route::post('/staff/login', [LoginController::class, 'store'])
-        ->middleware('throttle:6,1')
-        ->name('login.store');
+// Login stays outside the guest middleware so a shared browser can switch accounts
+// instead of being bounced into whoever is already signed in.
+Route::get('/staff/login', [LoginController::class, 'create'])->name('login');
+Route::post('/staff/login', [LoginController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('login.store');
 
+Route::middleware('guest')->group(function () {
     Route::get('/staff/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
     Route::post('/staff/forgot-password', [ForgotPasswordController::class, 'store'])
         ->middleware('throttle:staff-password')

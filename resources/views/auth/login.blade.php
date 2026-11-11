@@ -10,6 +10,12 @@
         Students use <a href="{{ route('student.identity') }}" class="font-semibold underline">Request LOA</a> instead.
     </x-slot:lead>
 
+    @auth
+        <p class="mb-4 rounded-xl border border-maroon-900/10 bg-white px-4 py-3 text-sm text-maroon-800">
+            This browser is signed in as <strong>{{ auth()->user()->email }}</strong>.
+            Enter another account below to switch. The previous account is signed out.
+        </p>
+    @endauth
     <form method="POST" action="{{ route('login.store') }}" class="space-y-4 rounded-2xl border border-maroon-900/10 bg-white p-6 sm:p-8">
         @csrf
         <div>
